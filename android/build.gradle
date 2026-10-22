@@ -1,0 +1,54 @@
+// Flutter RTC Link — Android build configuration / Flutter RTC Link —— Android 构建配置
+//
+// The plugin's native surface is intentionally thin: DPP (Wi-Fi Easy Connect)
+// and the microphone foreground service. Everything else is delegated to
+// flutter_webrtc / livekit_client / flutter_blue_plus / flutter_ota.
+// 插件的原生面刻意保持很薄：DPP（Wi-Fi Easy Connect）与麦克风前台服务。
+// 其余能力全部委托给 flutter_webrtc / livekit_client / flutter_blue_plus /
+// flutter_ota。
+buildscript {
+    ext.kotlin_version = '2.1.0'
+    repositories {
+        google()
+        mavenCentral()
+    }
+    dependencies {
+        classpath 'com.android.tools.build:gradle:8.7.3'
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
+    }
+}
+
+apply plugin: 'com.android.library'
+apply plugin: 'kotlin-android'
+
+android {
+    namespace = 'com.zerolabsco.rtc_link'
+    compileSdk = 36
+
+    defaultConfig {
+        // Version compatibility matrix (also documented in the README):
+        // minSdk 24 / compileSdk 36+, iOS 15.0+.
+        // 版本兼容矩阵（README 亦有记载）：minSdk 24 / compileSdk 36+，iOS 15.0+。
+        minSdk = 24
+        targetSdk = 36
+    }
+
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
+    }
+
+    kotlinOptions {
+        jvmTarget = '17'
+    }
+
+    sourceSets {
+        main {
+            kotlin.srcDirs += 'src/main/kotlin'
+        }
+    }
+}
+
+dependencies {
+    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlin_version"
+}

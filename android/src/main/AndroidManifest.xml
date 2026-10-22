@@ -1,0 +1,72 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!--
+      Plugin manifest merge template / 插件 Manifest 合并模板
+      These declarations are merged into the host app. Runtime requests are
+      gated by RtcPermissions.requestAll(); features degrade (never crash)
+      when a permission is denied.
+      以下声明会合并进宿主 App。运行时申请由 RtcPermissions.requestAll() 统一
+      进行；权限被拒时功能降级，绝不崩溃。
+    -->
+
+    <!-- Base network / 基础网络 -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+
+    <!-- Camera + microphone (runtime) / 摄像头 + 麦克风（运行时） -->
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
+
+    <!--
+      Background capture (Android 14+ / API 34+): without this pair the app
+      throws SecurityException as soon as background recording starts.
+      后台采集（Android 14+ / API 34+）：缺少这一对权限时，后台录音一启动就会抛
+      SecurityException。
+    -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
+    <!-- Bluetooth LE (Android 12+ runtime) / 蓝牙 BLE（Android 12+ 运行时） -->
+    <uses-permission android:name="android.permission.BLUETOOTH" />
+    <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" />
+    <uses-permission android:name="android.permission.BLUETOOTH_SCAN" />
+    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
+
+    <!--
+      Nearby Wi-Fi devices (Android 13+): must declare neverForLocation,
+      otherwise the Wi-Fi APIs throw SecurityException.
+      附近 Wi-Fi 设备（Android 13+）：必须声明 neverForLocation，否则 Wi-Fi API
+      直接抛 SecurityException。
+    -->
+    <uses-permission
+        android:name="android.permission.NEARBY_WIFI_DEVICES"
+        android:usesPermissionFlags="neverForLocation" />
+
+    <!-- Legacy Wi-Fi scanning on Android 12 and below / Android 12 及以下的旧版 Wi-Fi 扫描 -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+
+    <!-- NFC / NFC -->
+    <uses-permission android:name="android.permission.NFC" />
+    <uses-feature
+        android:name="android.hardware.nfc"
+        android:required="false" />
+
+    <!--
+      DPP (Wi-Fi Easy Connect) needs NO special permission — it is launched as
+      a system Settings intent (see DppManager.kt).
+      DPP（Wi-Fi Easy Connect）无需任何特殊权限——它以系统设置意图的方式启动
+      （见 DppManager.kt）。
+    -->
+
+    <application>
+        <!-- Microphone foreground service (background recording) / 麦克风前台服务（后台录音） -->
+        <service
+            android:name="com.zerolabsco.rtc_link.RtcLinkForegroundService"
+            android:exported="false"
+            android:foregroundServiceType="microphone" />
+    </application>
+
+</manifest>
