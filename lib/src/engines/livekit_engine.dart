@@ -165,6 +165,10 @@ class LiveKitSession extends RtcSession {
       StreamController<RtcStats>.broadcast();
   final Map<String, LiveKitSubscriber> _subscribers =
       <String, LiveKitSubscriber>{};
+  // Accumulated wanted track sids per remote participant so that subscribing a
+  // second stream never revokes the first one.
+  // 按远端参与者维护想要的轨道 sid 集合，避免订阅第二路时撤销第一路。
+  final Map<String, Set<String>> _wantedSids = <String, Set<String>>{};
   late final lk.EventsListener<lk.RoomEvent> _listener;
   LiveKitPublisher? _publisher;
   bool _disposed = false;
@@ -225,11 +229,15 @@ class LiveKitSession extends RtcSession {
   Future<void> unsubscribe(String streamId) async {
     final subscriber = _subscribers.remove(streamId);
     if (subscriber == null) return;
+    for (final entry in _wantedSids.entries) {
+      entry.value.remove(streamId);
+    }
     await subscriber.dispose();
     _publishRemoteStreams();
     _eventsCtrl.add(
       RtcTrackUnsubscribed(streamId: streamId, kind: RtcTrackKind.video),
     );
+    await _regrantWanted();
   }
 
   @override
@@ -240,6 +248,7 @@ class LiveKitSession extends RtcSession {
       await subscriber.dispose();
     }
     _subscribers.clear();
+    _wantedSids.clear();
     await _publisher?.dispose();
     _publisher = null;
     await _listener.dispose();
@@ -419,14 +428,29 @@ class LiveKitSession extends RtcSession {
     lk.RemoteTrackPublication<lk.RemoteVideoTrack> publication,
     String streamId,
   ) async {
-    // On-demand subscription: grant only this track to the local participant.
-    // 按需订阅：仅把这一路轨道授权给本地参与者。
+    // On-demand subscription: accumulate the wanted sids for this participant so
+    // subscribing another stream never revokes the earlier ones.
+    // 按需订阅：累加该参与者的想要 sid，避免订阅其它路时撤销已订阅的路。
     final identity = publication.participant.identity;
-    _room.localParticipant?.setTrackSubscriptionPermissions(
+    _wantedSids.putIfAbsent(identity, () => <String>{}).add(streamId);
+    await _regrantWanted();
+  }
+
+  /// Re-applies the accumulated track-subscription allowlist to the local
+  /// participant. / 向本地参与者重新应用累加后的轨道订阅白名单。
+  Future<void> _regrantWanted() async {
+    final participant = _room.localParticipant;
+    if (participant == null) return;
+    final permissions = <lk.ParticipantTrackPermission>[];
+    for (final entry in _wantedSids.entries) {
+      if (entry.value.isEmpty) continue;
+      permissions.add(
+        lk.ParticipantTrackPermission(entry.key, false, entry.value.toList()),
+      );
+    }
+    participant.setTrackSubscriptionPermissions(
       allParticipantsAllowed: false,
-      trackPermissions: <lk.ParticipantTrackPermission>[
-        lk.ParticipantTrackPermission(identity, false, <String>[streamId]),
-      ],
+      trackPermissions: permissions,
     );
   }
 

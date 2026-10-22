@@ -77,16 +77,18 @@ class LanDiscovery {
     String serviceType, {
     IpLookupType ipLookupType = IpLookupType.any,
   }) {
-    late Discovery discovery;
-    late void Function(Service, ServiceStatus) listener;
+    Discovery? discovery;
+    void Function(Service, ServiceStatus)? listener;
     final controller = StreamController<LanService>(
       onCancel: () async {
-        discovery.removeServiceListener(listener);
-        await stopDiscovery(discovery);
+        if (discovery != null && listener != null) {
+          discovery!.removeServiceListener(listener!);
+        }
+        if (discovery != null) await stopDiscovery(discovery!);
       },
     );
     () async {
-      discovery = await startDiscovery(
+      final started = await startDiscovery(
         serviceType,
         autoResolve: true,
         ipLookupType: ipLookupType,
@@ -104,7 +106,8 @@ class LanDiscovery {
           ),
         );
       };
-      discovery.addServiceListener(listener);
+      started.addServiceListener(listener!);
+      discovery = started;
     }();
     return controller.stream;
   }

@@ -42,7 +42,7 @@ class _JoystickState extends State<Joystick>
     with SingleTickerProviderStateMixin {
   Offset _offset = Offset.zero;
   late final AnimationController _controller;
-  late final Animation<Offset> _animation;
+  late Animation<Offset> _animation;
 
   double get _radius => widget.size / 2 - widget.size * 0.12;
 

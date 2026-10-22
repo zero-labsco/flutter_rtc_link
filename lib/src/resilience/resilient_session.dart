@@ -391,7 +391,11 @@ class ResilientSession implements RtcSession {
         _recovering = false;
         await _establish(initial: false);
       }
-      if (_gate.isPaused) {
+      // When auto-resume-after-reconnect is enabled, `_afterReconnect` (run inside
+      // `_establish`) already resumed the gate, so do not request it again here.
+      // 若开启"重连后自动恢复"，`_afterReconnect` 已在 `_establish` 内部处理过门，
+      // 此处不应再发起一次（否则会生成并废弃一个无用的恢复票据）。
+      if (_gate.isPaused && !_config.autoResumeAfterReconnect) {
         if (_policy.background.requireResumeConfirmation) {
           _gate.requestResume();
         } else {
@@ -475,6 +479,10 @@ class ResilientSession implements RtcSession {
       _supervisor.recordSuccess();
       _recovering = false;
       _setPhase(LinkPhase.connected);
+      // `_onSessionEvent` suppresses the session's own `RtcConnected`, so the
+      // public stream only learns about a (re)connect from here.
+      // `_onSessionEvent` 已抑制会话自身的 RtcConnected，对外事件流只能在此发出。
+      _emit(RtcConnected(roomId: _roomId, role: _role.value));
       if (!initial) {
         await _afterReconnect();
       }
@@ -566,9 +574,14 @@ class ResilientSession implements RtcSession {
     if (_health.phase == LinkPhase.failed || _health.phase == LinkPhase.idle) {
       return;
     }
-    await pause(reason);
+    // Take the recovery lock synchronously before any `await` so that two events
+    // racing in (e.g. a session disconnect plus a network-lost path) cannot both
+    // pass the guard and schedule two backoff timers / double-count attempts.
+    // 在任何 await 之前同步加锁，避免会话断开与网络丢失两类事件并发穿过守卫，
+    // 造成双定时器与重试次数被重复累加。
     if (_recovering) return;
     _recovering = true;
+    await pause(reason);
     _setPhase(LinkPhase.reconnecting);
     _emit(
       const RtcConnectionStateChanged(state: RtcConnectionState.reconnecting),
