@@ -1,5 +1,5 @@
 name: flutter_rtc_link
-description: "Flutter real-time audio/video (WebRTC WHIP/WHEP + LiveKit) and IoT device management plugin: publish, subscribe, clarity switching, live relay, robot teleoperation, provisioning, OTA, logs and diagnostics."
+description: "Flutter plugin for real-time audio/video (WebRTC WHIP/WHEP + LiveKit) and IoT device management: publish, subscribe, live relay, robot teleoperation, provisioning and OTA."
 version: 0.1.0
 topics:
   - webrtc

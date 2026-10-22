@@ -35,6 +35,10 @@ build/
 .DS_Store
 Thumbs.db
 
+# Dev-only tooling (EOL normalizer, release checker) is not shipped.
+# 仅开发期使用的工具（LF 归一化、发布检查）不随包发布。
+tool/
+
 # Tests are not part of the published API surface.
 # 测试不属于已发布 API 的一部分。
 test/
