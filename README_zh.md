@@ -20,10 +20,7 @@
 [![Style: effective dart](https://img.shields.io/badge/style-effective_dart-40c4ff.svg)](https://pub.dev/packages/effective_dart)
 [![Docs](https://img.shields.io/badge/docs-GitHub%20Pages-4cc38a.svg)](https://zero-labsco.github.io/flutter_rtc_link/)
 
-> **📡 首个版本：** `0.1.0` 交付双引擎内核（WHIP/WHEP + LiveKit）、清晰度切换、直播
-> 转接、带 500ms 看门狗的机器人远控、完整的物联网设备四件套（配网 / OTA / 日志 /
-> 诊断），以及面向海外链路的韧性层——受控建链、TURN 中继升级、Wi-Fi ↔ 蜂窝 ICE
-> 重启、画面冻结自愈，以及**绝不补发过期操作的暂停 / 恢复确认流程**。
+> **🔔 推荐升级 / Upgrade recommended：** `0.1.1` 修复了六个生命周期缺陷——摇杆首次松手崩溃、LiveKit 多路订阅互相撤销、`ResilientSession` 重连被重复调度、从不对外发出 `RtcConnected`、回到前台时重复恢复，以及局域网发现在流被提前取消时崩溃。建议所有用户升级到最新版本（`^0.1.1`）。
 
 🌐 **[文档站](https://zero-labsco.github.io/flutter_rtc_link/)** &nbsp;·&nbsp; 📦 **[在 pub.dev 查看](https://pub.dev/packages/flutter_rtc_link)** &nbsp;·&nbsp; 🔗 **[查看 GitHub 仓库](https://github.com/zero-labsco/flutter_rtc_link)**
 

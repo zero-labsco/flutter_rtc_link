@@ -180,7 +180,7 @@ Update all of these when the version changes / 改版本时必须同步以下全
 - `example/pubspec.yaml` `version:` — mirror the plugin version. / `example/pubspec.yaml` 的 `version:`（与插件对齐）。
 - `ios/flutter_rtc_link.podspec` `s.version = '<version>'` — the iOS native version shared by CocoaPods and SPM. / iOS 原生版本，CocoaPods 与 SPM 共用。
   - The SPM `Package.swift` has **no** version field (SPM versions come from the git tag), so there is nothing to bump there; the podspec `s.version` is the one that must move. / SPM 的 `Package.swift` **没有**版本字段（版本由 git tag 决定），那里没有要改的数字；podspec 的 `s.version` 才是必须同步处。
-- `README.md` / `README_zh.md` — the `flutter_rtc_link: ^<version>` install snippet and the `ref: release/v<version>` git snippet. / 两份 README 的安装片段 `flutter_rtc_link: ^<version>` 与 git 片段 `ref: release/v<version>`。
+- `README.md` / `README_zh.md` — the `flutter_rtc_link: ^<version>` install snippet, the `ref: release/v<version>` git snippet, and the top `🔔 Upgrade recommended` / `🔔 推荐升级` callout (summarize what `<version>` changed and recommend upgrading; never reference prior versions). / 两份 README 的安装片段 `flutter_rtc_link: ^<version>`、git 片段 `ref: release/v<version>`，以及顶部 `🔔 推荐升级` callout（简述 `<version>` 的改动并建议升级，不引用旧版本）。
 - `CHANGELOG.md` — a new `## <version>` section at the top. / 顶部新增 `## <version>` 条目。
 
 Also review the docs for drift / 发版前还要审查文档内容是否需要更新：

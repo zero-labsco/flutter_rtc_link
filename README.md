@@ -18,7 +18,7 @@ Real-time audio/video (WebRTC) and IoT device management in one Flutter plugin: 
 [![Style: effective dart](https://img.shields.io/badge/style-effective_dart-40c4ff.svg)](https://pub.dev/packages/effective_dart)
 [![Docs](https://img.shields.io/badge/docs-GitHub%20Pages-4cc38a.svg)](https://zero-labsco.github.io/flutter_rtc_link/)
 
-> **📡 First release:** `0.1.0` ships the dual-engine core (WHIP/WHEP + LiveKit), clarity switching, live relay, robot teleoperation with a 500 ms watchdog, the full IoT device suite (provisioning / OTA / logs / diagnostics), and a resilience layer for overseas links — supervised connect, TURN escalation, Wi-Fi ↔ cellular ICE restart, frozen-picture recovery, and a **pause/resume confirmation flow that never replays an expired operation**.
+> **🔔 Upgrade recommended:** `0.1.1` fixes six lifecycle bugs — a joystick crash on first release, LiveKit multi-stream subscriptions cancelling each other, double-scheduled reconnects in `ResilientSession`, `RtcConnected` never being emitted, a duplicate resume on return-to-foreground, and an early-cancel crash in LAN discovery. All users should upgrade to the latest version (`^0.1.1`).
 
 🌐 **[Documentation](https://zero-labsco.github.io/flutter_rtc_link/)** &nbsp;·&nbsp; 📦 **[View on pub.dev](https://pub.dev/packages/flutter_rtc_link)** &nbsp;·&nbsp; 🔗 **[View on GitHub](https://github.com/zero-labsco/flutter_rtc_link)**
 
