@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.2
+
+### Fixed / 修复
+- Example app device-page action row overflow on narrow screens: the SCAN BLE / DPP / NFC buttons were laid out in a fixed three-up `Row` that overflowed; they now wrap so they flow to the next line when space is tight.
+  - 示例应用设备页操作行在窄屏溢出：SCAN BLE / DPP / NFC 原本排成固定三列 `Row` 会溢出；现已改为自动换行。
+- Lowered the `permission_handler` constraint to `^11.0.0` so its Android submodule stays at API ≤ 36, keeping the default Flutter template (AGP 9.1.0 / compileSdk 36) buildable without forcing an AGP / Gradle upgrade.
+  - 将 `permission_handler` 约束降到 `^11.0.0`，使其 Android 子模块停留在 API ≤ 36，从而默认 Flutter 模板（AGP 9.1.0 / compileSdk 36）无需升级 AGP / Gradle 即可构建。
+
 ## 0.1.1
 
 ### Fixed / 修复

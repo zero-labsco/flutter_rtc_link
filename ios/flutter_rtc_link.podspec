@@ -4,7 +4,7 @@
 #
 Pod::Spec.new do |s|
   s.name             = 'flutter_rtc_link'
-  s.version          = '0.1.1'
+  s.version          = '0.1.2'
   s.summary          = 'Flutter real-time audio/video (WHIP/WHEP + LiveKit) and IoT device management plugin.'
   s.description      = <<-DESC
 Flutter real-time audio/video (WebRTC WHIP/WHEP + LiveKit) and IoT device management plugin: publish, subscribe, clarity switching, live relay, robot teleoperation, provisioning, OTA, logs and diagnostics.

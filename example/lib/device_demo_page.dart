@@ -78,30 +78,27 @@ class _DeviceDemoPageState extends State<DeviceDemoPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: <Widget>[
-              Row(
+              // Wrap instead of a fixed three-up Row so the SCAN BLE / DPP / NFC
+              // actions flow to the next line on narrow screens instead of
+              // overflowing. / 用 Wrap 替代固定三列 Row，窄屏时自动换行避免溢出。
+              Wrap(
+                spacing: 10,
+                runSpacing: 10,
                 children: <Widget>[
-                  Expanded(
-                    child: InstrumentButton(
-                      label: 'scan ble',
-                      icon: Icons.bluetooth_searching,
-                      onPressed: _scanBle,
-                    ),
+                  InstrumentButton(
+                    label: 'scan ble',
+                    icon: Icons.bluetooth_searching,
+                    onPressed: _scanBle,
                   ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: InstrumentButton(
-                      label: 'dpp',
-                      icon: Icons.qr_code_scanner,
-                      onPressed: _provisionViaDpp,
-                    ),
+                  InstrumentButton(
+                    label: 'dpp',
+                    icon: Icons.qr_code_scanner,
+                    onPressed: _provisionViaDpp,
                   ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: InstrumentButton(
-                      label: 'nfc',
-                      icon: Icons.nfc,
-                      onPressed: _readNfcTag,
-                    ),
+                  InstrumentButton(
+                    label: 'nfc',
+                    icon: Icons.nfc,
+                    onPressed: _readNfcTag,
                   ),
                 ],
               ),
