@@ -1,0 +1,110 @@
+/*
+ * instrument.css — dark instrument-panel skin for the docs site.
+ * Mirrors example/lib/theme/app_theme.dart: one brand seed (amber #E8A33D),
+ * near-black surfaces, hairline borders, mono readouts.
+ */
+
+:root {
+  --rtclink-surface: #14110d;
+  --rtclink-surface-low: #1a1712;
+  --rtclink-surface-high: #29241c;
+  --rtclink-on-surface: #ede6d8;
+  --rtclink-on-variant: #b8ae9b;
+  --rtclink-outline: #322d24;
+  --rtclink-brand: #e8a33d;
+  --rtclink-ok: #4cc38a;
+  --rtclink-warn: #f2b04a;
+  --rtclink-error: #ff6b5e;
+
+  /* Nextra 3 accent: amber signal, matching the example app's brandSeed. */
+  --nextra-primary-hue: 38deg;
+  --nextra-primary-saturation: 70%;
+}
+
+.dark,
+html[class*='dark'] {
+  background: var(--rtclink-surface);
+}
+
+/* Logo: a live LED dot next to the wordmark. */
+.rtclink-logo {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+
+.rtclink-logo-led {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--rtclink-brand);
+  box-shadow: 0 0 6px rgba(232, 163, 61, 0.7);
+  animation: rtclink-pulse 1.6s ease-in-out infinite alternate;
+}
+
+@keyframes rtclink-pulse {
+  from {
+    opacity: 0.35;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rtclink-logo-led {
+    animation: none;
+  }
+}
+
+/* Mono readouts for code, table headers and inline keys. */
+code,
+kbd,
+pre,
+table th {
+  font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  letter-spacing: 0.01em;
+}
+
+/* Panels: flat surfaces with hairline borders instead of floating cards. */
+.nextra-card,
+.nextra-callout {
+  border-radius: 8px;
+  border: 1px solid var(--rtclink-outline) !important;
+  background: var(--rtclink-surface-low) !important;
+}
+
+table {
+  font-size: 0.9rem;
+}
+
+table th {
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-size: 0.72rem;
+  color: var(--rtclink-on-variant);
+}
+
+/* Status badges used across the docs. */
+.rtclink-badge {
+  display: inline-block;
+  padding: 1px 8px;
+  border-radius: 6px;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 0.7rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  border: 1px solid currentColor;
+}
+
+.rtclink-badge--ok {
+  color: var(--rtclink-ok);
+}
+.rtclink-badge--warn {
+  color: var(--rtclink-warn);
+}
+.rtclink-badge--error {
+  color: var(--rtclink-error);
+}

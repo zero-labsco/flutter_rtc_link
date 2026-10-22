@@ -1,0 +1,25 @@
+#!/bin/sh
+#
+# pre-commit — build & sync the Nextra documentation site.
+#
+# Installed by `npm run setup-hook` (website/scripts/install-hook.mjs).
+# The script no-ops unless this commit touches website/ source or bumps the
+# pubspec.yaml version, so ordinary commits stay fast.
+#
+# Set SKIP_SYNC_DOCS=1 to bypass (e.g. `SKIP_SYNC_DOCS=1 git commit ...`).
+
+set -e
+
+if [ "${SKIP_SYNC_DOCS:-0}" = "1" ]; then
+  echo "[pre-commit] SKIP_SYNC_DOCS=1 — skipping docs sync."
+  exit 0
+fi
+
+REPO_ROOT=$(git rev-parse --show-toplevel)
+
+if [ ! -d "$REPO_ROOT/website/node_modules" ]; then
+  echo "[pre-commit] website/node_modules missing — run 'npm ci' in website/ to enable docs sync."
+  exit 0
+fi
+
+node "$REPO_ROOT/website/scripts/sync-docs.mjs"
