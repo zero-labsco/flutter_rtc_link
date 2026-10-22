@@ -34,7 +34,7 @@ dependencies:
   nfc_manager: ^4.2.1
   nordic_dfu: ^8.1.0
   nsd: ^5.0.1
-  permission_handler: ^13.0.2
+  permission_handler: ^11.0.0
   wifi_iot: ^0.4.0
 
 dev_dependencies:
