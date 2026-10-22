@@ -1,16 +1,40 @@
+# Never publish: local agent data, internal task book and docs that ship on the
+# site. / 永不发布：本地 IDE 代理数据、内部任务书，以及已在文档站发布的文档。
 .codebuddy/
+rtc_plugin_brief.md
 AGENTS.md
 CONTRIBUTING.md
 TODO.md
-rtc_plugin_brief.md
 website/
-example/pubspec.lock
-example/.dart_tool/
-example/build/
+
+# Example platform folders are build scaffolding, not source.
+# 示例的平台目录是构建脚手架而非源码。
 example/ios/
 example/android/
 example/macos/
 example/windows/
 example/linux/
 example/web/
+example/.dart_tool/
+example/build/
+example/pubspec.lock
+
+# Build artifacts. When .pubignore exists, pub IGNORES .gitignore, so these
+# defaults must be restated here.
+# 当存在 .pubignore 时 pub 不再读取 .gitignore，因此这些默认忽略项必须在此声明。
+.dart_tool/
+build/
+*.g.dart
+*.freezed.dart
+/pubspec.lock
+
+# IDE / OS
+.idea/
+.vscode/
+*.iml
+.DS_Store
+Thumbs.db
+
+# Tests are not part of the published API surface.
+# 测试不属于已发布 API 的一部分。
 test/
