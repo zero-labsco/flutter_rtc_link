@@ -183,6 +183,22 @@ Update all of these when the version changes / 改版本时必须同步以下全
 - `README.md` / `README_zh.md` — the `flutter_rtc_link: ^<version>` install snippet and the `ref: release/v<version>` git snippet. / 两份 README 的安装片段 `flutter_rtc_link: ^<version>` 与 git 片段 `ref: release/v<version>`。
 - `CHANGELOG.md` — a new `## <version>` section at the top. / 顶部新增 `## <version>` 条目。
 
+Also review the docs for drift / 发版前还要审查文档内容是否需要更新：
+
+- A version bump is only half the job — after the code changes, read the docs and
+  confirm they still match: `README.md` / `README_zh.md` (feature list, usage
+  snippets, API table) and the docs site (`website/pages`, `website/pages/zh`)
+  must reflect the **current** public API and behavior.
+  / 改版本只是发版的一半——改完代码后还要通读文档确认一致：`README.md` /
+    `README_zh.md`（功能列表、用法示例、API 表）与文档站（`website/pages`、
+    `website/pages/zh`）必须反映**当前**的公开 API 与行为。
+- If a fix changed user-visible behavior, or an API was added / renamed /
+  removed, the docs need an update too — not just the version strings. Doc drift
+  is caught by a manual read, not by `tool/check_release.dart` (which only
+  checks version numbers).
+  / 若某次修复改变了用户可见行为，或新增/改名/删除了 API，文档也要同步更新——
+    不只是版本号。`check_release.dart` 只校验版本串，文档漂移只能靠人工通读发现。
+
 Verify with the bundled self-check before tagging / 打 tag 前用自带自检脚本验证：
 
 ```bash
