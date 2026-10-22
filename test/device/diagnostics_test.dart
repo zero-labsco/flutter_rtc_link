@@ -1,4 +1,4 @@
-import 'package:flutter_rtc_link/rtc_link.dart';
+import 'package:flutter_rtc_link/flutter_rtc_link.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 RtcStats stats({String streamId = 'cam-1', double rtt = 40, double loss = 0}) {

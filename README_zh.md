@@ -119,7 +119,7 @@ Android 权限由插件自动合并。iOS 的用途字符串无法由插件注�
 ### 导入
 
 ```dart
-import 'package:flutter_rtc_link/rtc_link.dart';
+import 'package:flutter_rtc_link/flutter_rtc_link.dart';
 ```
 
 ---

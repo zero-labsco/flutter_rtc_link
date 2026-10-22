@@ -24,7 +24,7 @@ dependencies:
 ## 导入
 
 ```dart
-import 'package:flutter_rtc_link/rtc_link.dart';
+import 'package:flutter_rtc_link/flutter_rtc_link.dart';
 ```
 
 所有公开 API 都由这一个 barrel 再导出，**不要**直接导入 `lib/src/...`。

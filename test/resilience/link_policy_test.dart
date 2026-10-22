@@ -1,6 +1,6 @@
 import 'dart:math' as math;
 
-import 'package:flutter_rtc_link/rtc_link.dart';
+import 'package:flutter_rtc_link/flutter_rtc_link.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {

@@ -95,7 +95,7 @@ Android permissions are merged by the plugin. iOS usage strings cannot be inject
 ### Import
 
 ```dart
-import 'package:flutter_rtc_link/rtc_link.dart';
+import 'package:flutter_rtc_link/flutter_rtc_link.dart';
 ```
 
 ---

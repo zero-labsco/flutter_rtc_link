@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import 'package:flutter_rtc_link/rtc_link.dart';
+import 'package:flutter_rtc_link/flutter_rtc_link.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 /// Fake teleop channel for watchdog and command tests. / 用于看门狗与指令测试的假通道。

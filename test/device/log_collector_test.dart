@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:flutter_rtc_link/rtc_link.dart';
+import 'package:flutter_rtc_link/flutter_rtc_link.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 /// Fake uploader that records batches. / 记录批次的假上传器。

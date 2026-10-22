@@ -15,7 +15,7 @@ dependencies:
     path: ../
   # Used directly by the RTC demo for the local preview renderer.
   # RTC 演示直接用它在本地预览渲染器。
-  flutter_webrtc: 1.6.2+hotfix.4
+  flutter_webrtc: ^1.6.2+hotfix.4
 
 dev_dependencies:
   flutter_test:
