@@ -1,0 +1,26 @@
+name: flutter_rtc_link_example
+description: Example app for the flutter_rtc_link plugin (RTC, robot teleoperation, device management).
+publish_to: none
+
+version: 0.1.0
+
+environment:
+  sdk: ">=3.9.0 <4.0.0"
+  flutter: ">=3.35.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_rtc_link:
+    path: ../
+  # Used directly by the RTC demo for the local preview renderer.
+  # RTC 演示直接用它在本地预览渲染器。
+  flutter_webrtc: 1.6.2+hotfix.4
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true
