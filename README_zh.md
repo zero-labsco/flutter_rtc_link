@@ -88,7 +88,7 @@
 
 ```yaml
 dependencies:
-  flutter_rtc_link: ^0.1.0
+  flutter_rtc_link: ^0.1.1
 ```
 
 ### 从 GitHub 安装
@@ -98,7 +98,7 @@ dependencies:
   flutter_rtc_link:
     git:
       url: https://github.com/zero-labsco/flutter_rtc_link.git
-      ref: release/v0.1.0   # 把 0.1.0 换成你需要的版本
+      ref: release/v0.1.1   # 把 0.1.1 换成你需要的版本
 ```
 
 ### 平台配置

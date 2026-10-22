@@ -68,7 +68,7 @@ Real-time audio/video (WebRTC) and IoT device management in one Flutter plugin: 
 
 ```yaml
 dependencies:
-  flutter_rtc_link: ^0.1.0
+  flutter_rtc_link: ^0.1.1
 ```
 
 ### GitHub
@@ -78,7 +78,7 @@ dependencies:
   flutter_rtc_link:
     git:
       url: https://github.com/zero-labsco/flutter_rtc_link.git
-      ref: release/v0.1.0   # replace 0.1.0 with the version you need
+      ref: release/v0.1.1   # replace 0.1.1 with the version you need
 ```
 
 ### Platform Setup

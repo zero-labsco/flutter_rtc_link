@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.1.1
+
+### Fixed / 修复
+- Joystick crash on first release: `_animation` was declared `late final` but reassigned in `_release()`, throwing `LateInitializationError`. It is now a reassignable `late` field.
+  - 摇杆首次松手崩溃：`_animation` 被声明为 `late final` 却在 `_release()` 中二次赋值，抛 `LateInitializationError`；现改为可重新赋值的 `late` 字段。
+- LiveKit multi-stream subscription revocation: subscribing a second stream overwrote the track-subscription allowlist and revoked the first. Wanted track SIDs are now accumulated per participant and re-granted together.
+  - LiveKit 多路订阅互相撤销：订阅第二路时覆盖轨道订阅白名单、撤销第一路；现按参与者累加想要的轨道 SID 并统一重新授权。
+- ResilientSession re-entrant reconnect double scheduling: the `_recovering` guard was set after `await pause()`, letting two racing events both schedule a backoff timer. The guard is now taken synchronously before the await.
+  - ResilientSession 重入重连双调度：`_recovering` 守卫在 `await pause()` 之后才置位，两类并发事件可同时穿过并各调度一个退避定时器；现改为在 await 前同步加锁。
+- ResilientSession never emitted `RtcConnected`: the session's own `RtcConnected` was suppressed in `_onSessionEvent` but never re-emitted by `ResilientSession`, so consumers never learned a link was (re)established. It is now emitted from `_establish`.
+  - ResilientSession 从不对外发出 `RtcConnected`：会话自身的 `RtcConnected` 在 `_onSessionEvent` 中被抑制，而 `ResilientSession` 又从未补发，导致消费者永远收不到连接成功事件；现由 `_establish` 补发。
+- `setBackground(false)` duplicate resume: when `autoResumeAfterReconnect` is enabled, `_afterReconnect` already resumed the gate, yet the foreground path requested a second (orphaned) resume ticket. The foreground path now skips resume in that case.
+  - `setBackground(false)` 重复恢复：开启 `autoResumeAfterReconnect` 时 `_afterReconnect` 已处理门的恢复，回到前台又发起一个被废弃的恢复票据；现已在该情况下跳过。
+- LanDiscovery.discoverStream early-cancel crash: `onCancel` touched `late` discovery/listener fields that were not yet initialized if the stream was cancelled before `startDiscovery` resolved, throwing `LateInitializationError`. They are now nullable with null checks.
+  - LanDiscovery.discoverStream 提前取消崩溃：`onCancel` 访问尚未初始化的 `late` 字段（流在 `startDiscovery` 完成前被取消时），抛 `LateInitializationError`；现改为可空并加空判断。
+
 ## 0.1.0
 
 ### Added / 新增

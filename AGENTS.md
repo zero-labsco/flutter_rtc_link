@@ -164,6 +164,39 @@ flutter analyze lib test example/lib   # must be: No issues found!
 flutter test                           # must be: All tests passed!
 ```
 
+### Releasing / 发版
+
+Bumping `pubspec.yaml`'s `version` is not done until every other version string
+is in sync — the usual miss is the iOS native `s.version`, a README snippet, or
+the CHANGELOG heading left at the old number. `pubspec.yaml`'s `version` is the
+single source of truth.
+/ 改 `pubspec.yaml` 的 `version` 不算完成，必须让其余版本串全部同步——最常漏的是
+iOS 原生的 `s.version`、README 片段或仍停留在旧号的 CHANGELOG 标题。`pubspec.yaml`
+的 `version` 是唯一事实来源。
+
+Update all of these when the version changes / 改版本时必须同步以下全部：
+
+- `pubspec.yaml` `version:` — the source of truth. / `pubspec.yaml` 的 `version:`（事实来源）。
+- `example/pubspec.yaml` `version:` — mirror the plugin version. / `example/pubspec.yaml` 的 `version:`（与插件对齐）。
+- `ios/flutter_rtc_link.podspec` `s.version = '<version>'` — the iOS native version shared by CocoaPods and SPM. / iOS 原生版本，CocoaPods 与 SPM 共用。
+  - The SPM `Package.swift` has **no** version field (SPM versions come from the git tag), so there is nothing to bump there; the podspec `s.version` is the one that must move. / SPM 的 `Package.swift` **没有**版本字段（版本由 git tag 决定），那里没有要改的数字；podspec 的 `s.version` 才是必须同步处。
+- `README.md` / `README_zh.md` — the `flutter_rtc_link: ^<version>` install snippet and the `ref: release/v<version>` git snippet. / 两份 README 的安装片段 `flutter_rtc_link: ^<version>` 与 git 片段 `ref: release/v<version>`。
+- `CHANGELOG.md` — a new `## <version>` section at the top. / 顶部新增 `## <version>` 条目。
+
+Verify with the bundled self-check before tagging / 打 tag 前用自带自检脚本验证：
+
+```bash
+dart run tool/check_release.dart   # non-zero exit if any version is stale
+```
+
+It treats `pubspec.yaml`'s `version` as truth and checks the podspec, both
+READMEs and the CHANGELOG heading; wire it into CI to block a forgotten bump. It
+intentionally ignores `Package.swift` and historical prose, and
+`CONTRIBUTING.md`'s `v<version>` lines are illustrative only.
+/ 脚本以 `pubspec.yaml` 的 `version` 为真值，核对 podspec、两份 README 与 CHANGELOG
+标题；接进 CI 可拦截漏改。它有意忽略 `Package.swift` 与历史叙述，`CONTRIBUTING.md`
+里的 `v<version>` 仅为示例。
+
 ### Testing conventions / 测试约定
 
 - Tests live under `test/` mirroring `lib/src/` (`core/`, `device/`,
