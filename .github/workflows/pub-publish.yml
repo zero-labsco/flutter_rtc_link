@@ -1,0 +1,107 @@
+name: Publish to pub.dev
+
+on:
+  push:
+    tags: ['v[0-9]+.[0-9]+.[0-9]+']  # e.g. v0.1.0, v0.1.1
+
+# Publish job requires CI to pass first
+jobs:
+  # Reuse CI workflow as prerequisite
+  ci-check:
+    name: CI Check
+    uses: ./.github/workflows/ci.yml
+    secrets: inherit
+
+  publish:
+    name: Publish to pub.dev
+    needs: ci-check
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write  # for creating GitHub Release
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          # Keep in sync with ci.yml (flutter-version: '3.47.5') so the pre-publish
+          # `dart format` check (run via the reused ci.yml) uses the same formatter.
+          flutter-version: '3.47.5'
+          cache: true
+
+      # ========== Pre-publish validation ==========
+
+      - name: Extract tag version
+        id: extract-tag
+        run: |
+          TAG_NAME="${GITHUB_REF_NAME}"  # e.g. "v0.1.0"
+          VERSION="${TAG_NAME#v}"         # e.g. "0.1.0"
+          echo "tag_name=$TAG_NAME" >> "$GITHUB_OUTPUT"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Verify version matches pubspec.yaml
+        run: |
+          PUBSPEC_VERSION=$(grep -E '^version:' pubspec.yaml | awk '{print $2}')
+          TAG_VERSION="${{ steps.extract-tag.outputs.version }}"
+          if [ "$PUBSPEC_VERSION" != "$TAG_VERSION" ]; then
+            echo "::error::pubspec.yaml version ($PUBSPEC_VERSION) does not match tag version ($TAG_VERSION)"
+            exit 1
+          fi
+          echo "✅ Version match: $PUBSPEC_VERSION"
+
+      - name: Verify CHANGELOG has version entry
+        run: |
+          TAG_VERSION="${{ steps.extract-tag.outputs.version }}"
+          if ! grep -qE "^## ${TAG_VERSION}($| )" CHANGELOG.md; then
+            echo "::error::CHANGELOG.md is missing entry for version $TAG_VERSION"
+            exit 1
+          fi
+          echo "✅ CHANGELOG has entry for $TAG_VERSION"
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Dry-run pub publish validation
+        run: dart pub publish --dry-run
+
+      # ========== Actual publish to pub.dev ==========
+      # Community-maintained Action that internally handles OAuth2 credentials
+
+      - name: Publish to pub.dev
+        uses: k-paxian/dart-package-publisher@v1.6
+        with:
+          # Read full content of pub-credentials.json (injected from Secret PUB_CREDENTIALS_JSON)
+          accessToken: ${{ fromJson(secrets.PUB_CREDENTIALS_JSON).accessToken }}
+          refreshToken: ${{ fromJson(secrets.PUB_CREDENTIALS_JSON).refreshToken }}
+          # Skip format and static analysis (already verified in CI)
+          flutter: true
+          skipTests: true
+          force: true
+
+      # ========== Create GitHub Release ==========
+
+      - name: Extract CHANGELOG entry for this version
+        id: changelog
+        run: |
+          TAG_VERSION="${{ steps.extract-tag.outputs.version }}"
+          # Extract between "## X.Y.Z" and next "##" heading
+          AWK_PROG='
+            /^## [0-9]+\.[0-9]+\.[0-9]+/ {
+              if (found) { exit }
+              if (match($0, /^## ([0-9]+\.[0-9]+\.[0-9]+)/, m) && m[1] == "'"$TAG_VERSION"'") { found = 1; next }
+            }
+            found { print }
+          '
+          awk "$AWK_PROG" CHANGELOG.md > release_notes.md
+          cat release_notes.md
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v3
+        with:
+          name: Release v${{ steps.extract-tag.outputs.version }}
+          tag_name: ${{ steps.extract-tag.outputs.tag_name }}
+          body_path: release_notes.md
+          generate_release_notes: false

@@ -1,0 +1,49 @@
+name: Link Check
+
+# Scan documentation for dead/broken links using lychee.
+# Only user-facing docs are checked to keep the job fast and avoid false
+# positives from internal/anchor links.
+on:
+  pull_request:
+    types:
+      - opened
+      - synchronize
+      - reopened
+    paths:
+      - 'README.md'
+      - 'README_zh.md'
+      - 'CHANGELOG.md'
+      # website/pages/ is intentionally NOT scanned: the Nextra source uses
+      # extensionless route links (for example /Getting-Started) that lychee
+      # resolves as local files and reports as missing, which are false
+      # positives. Those routes are validated by the site build itself.
+  # Allow manual runs from the Actions tab.
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  link-check:
+    name: Check documentation links
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Run lychee link checker
+        uses: lycheeverse/lychee-action@v2
+        with:
+          # Only scan the documented files; accept 200/206/301/302/304, timeouts
+          # and 429 (rate limit) are retried. Fail only on real broken links.
+          args: >
+            --no-progress
+            --accept 200,206,301,302,304
+            --timeout 20
+            --retry-wait-time 2
+            --max-retries 2
+            --exclude "https://raw.githubusercontent.com/zero-labsco/flutter_rtc_link/main/image/.*"
+            README.md README_zh.md CHANGELOG.md
+          fail: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

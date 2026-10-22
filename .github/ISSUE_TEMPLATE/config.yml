@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 💬 提问讨论 / Discussions
+    url: https://github.com/zero-labsco/flutter_rtc_link/discussions
+    about: 使用问题、功能讨论请到 Discussions / For usage questions and feature discussions, please use Discussions
+  - name: 📖 文档 / Documentation
+    url: https://pub.dev/documentation/flutter_rtc_link/latest/
+    about: 查看 API 文档 / View the API documentation on pub.dev
+  - name: 📦 pub.dev 包页面 / Package on pub.dev
+    url: https://pub.dev/packages/flutter_rtc_link
+    about: 查看版本、评分和安装说明 / View versions, scores, and installation instructions

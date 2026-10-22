@@ -1,0 +1,74 @@
+name: Dart Format Auto-Fix
+
+# Automatically run `dart format` on PRs and push fixes back when the code is
+# not properly formatted. This keeps style consistent without reviewer nudging.
+on:
+  pull_request:
+    types:
+      - opened
+      - synchronize
+      - reopened
+  # Allow manual runs from the Actions tab (formats the default branch).
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    name: Auto-format Dart code
+    runs-on: ubuntu-latest
+    steps:
+      - name: Disable autocrlf on runner
+        # Force LF everywhere for this job so committed blobs are LF, not CRLF.
+        # A CRLF blob makes `dart format` re-emit LF on the next CI run, looping.
+        run: |
+          git config --global core.autocrlf false
+          git config --global core.eol lf
+          git config --global core.safecrlf false
+
+      - name: Checkout PR head
+        uses: actions/checkout@v7
+        with:
+          # Use the PR's head ref so we can push fixes back to the same branch.
+          ref: ${{ github.head_ref }}
+          # Fetch full history so renormalization can rewrite blobs if needed.
+          fetch-depth: 0
+
+      - name: Force LF on disk (pure git, no external tools)
+        # `git add --renormalize` writes LF into the index per .gitattributes,
+        # then `git checkout -f -- .` materializes that LF index onto disk.
+        # This guarantees `dart format` reads LF regardless of how checkout
+        # wrote the files. No dos2unix dependency (apt may be unavailable).
+        run: |
+          git config core.autocrlf false
+          git config core.eol lf
+          git add --renormalize .
+          git checkout -f -- .
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          # Keep in sync with ci.yml (flutter-version: '3.47.5'). The auto-format
+          # bot must run the SAME Dart formatter as CI, otherwise its committed
+          # "fixes" differ from what CI expects and the loop never ends.
+          flutter-version: '3.47.5'
+          cache: true
+
+      - name: Format code
+        run: dart format .
+
+      - name: Commit and push fixes
+        # Stage with --renormalize (forces LF into the index) and commit WITHOUT
+        # -a, so only the LF index is committed — never the raw working tree.
+        run: |
+          git add --renormalize .
+          if [[ -n "$(git status --porcelain)" ]]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git commit -m "style: auto-format with dart format"
+            git push
+          else
+            echo "No formatting changes needed."
+          fi

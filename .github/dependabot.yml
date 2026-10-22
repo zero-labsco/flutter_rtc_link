@@ -1,0 +1,96 @@
+# Dependabot configuration
+# Automatically check for dependency updates and open PRs
+# Docs: https://docs.github.com/code-security/dependabot/dependabot-version-updates/configuration-options-for-the-dependabot.yml-file
+version: 2
+
+updates:
+  # ========== Root pub dependencies ==========
+  - package-ecosystem: "pub"
+    directory: "/"
+    schedule:
+      # Check for updates every Monday
+      interval: "weekly"
+      day: "monday"
+      timezone: "Asia/Shanghai"
+    # Split groups by dependency type and risk to reduce review noise
+    groups:
+      # Runtime deps (flutter_webrtc, mqtt_client, ...) minor/patch grouped into one PR
+      pub-runtime:
+        dependency-type: "production"
+        update-types:
+          - "minor"
+          - "patch"
+      # Dev deps (flutter_lints, ...) in their own group
+      pub-dev:
+        dependency-type: "development"
+        update-types:
+          - "minor"
+          - "patch"
+      # Major versions always standalone for careful breaking-change review
+      pub-major:
+        update-types:
+          - "major"
+    open-pull-requests-limit: 5
+    # Version constraint strategy: preserve the caret (^) style, bump version only
+    versioning-strategy: "increase"
+    labels:
+      - "pub"
+    commit-message:
+      prefix: "chore(deps)"
+      include: "scope"
+    # Note: pubspec.yaml uses caret constraints (e.g. flutter_webrtc: ^0.14.2).
+    # `increase` keeps the `^` operator and only bumps the version number.
+
+  # ========== Example app pub dependencies ==========
+  # Example app deps are updated infrequently → monthly on 1st (rarely actually opens PRs)
+  - package-ecosystem: "pub"
+    directory: "/example"
+    schedule:
+      # Native options are daily/weekly/monthly only; `day` field only applies to weekly interval
+      interval: "monthly"
+      timezone: "Asia/Shanghai"
+    groups:
+      # Example runtime deps minor/patch grouped
+      example-runtime:
+        dependency-type: "production"
+        update-types:
+          - "minor"
+          - "patch"
+      # Example dev deps in own group
+      example-dev:
+        dependency-type: "development"
+        update-types:
+          - "minor"
+          - "patch"
+      # Example major versions standalone
+      example-major:
+        update-types:
+          - "major"
+    # Max 1 PR per month; example deps rarely bump monthly
+    open-pull-requests-limit: 1
+    # Same as root: preserve caret constraints
+    versioning-strategy: "increase"
+    labels:
+      - "pub"
+      - "example"
+    commit-message:
+      prefix: "chore(deps)"
+      include: "scope"
+
+  # ========== GitHub Actions version updates ==========
+  # Check .github/workflows/ for actions/xxx@vN versions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      timezone: "Asia/Shanghai"
+    groups:
+      # Group all actions updates into one PR
+      all-actions:
+        patterns:
+          - "*"
+    open-pull-requests-limit: 3
+    commit-message:
+      prefix: "chore(ci)"
+      include: "scope"
