@@ -6,9 +6,7 @@
 
 </div>
 
-一个插件同时做实时音视频（WebRTC）与物联网设备管理：双引擎可互换地推流与订阅、按流
-切换清晰度、直播转接、通过低时延控制链路遥控机器人、设备配网 / 升级 / 诊断，并内置
-面向海外跨公网链路的韧性层。
+一个 Flutter 插件同时搞定实时音视频（WebRTC）和物联网设备管理：用两套可任意切换的引擎推流 / 拉流，每条流都能单独调清晰度，并支持直播流转推；还能通过低延迟控制通道远程操控机器人，以及对设备做配网、固件升级与诊断。此外内置一层专为海外 / 跨公网弱网环境打造的韧性能力（自动重连、弱网恢复、中继切换等）。
 
 [![pub version](https://img.shields.io/pub/v/flutter_rtc_link.svg)](https://pub.dev/packages/flutter_rtc_link)
 [![pub points](https://img.shields.io/pub/points/flutter_rtc_link.svg)](https://pub.dev/packages/flutter_rtc_link/score)
