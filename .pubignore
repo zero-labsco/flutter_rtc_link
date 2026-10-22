@@ -1,0 +1,16 @@
+.codebuddy/
+AGENTS.md
+CONTRIBUTING.md
+TODO.md
+rtc_plugin_brief.md
+website/
+example/pubspec.lock
+example/.dart_tool/
+example/build/
+example/ios/
+example/android/
+example/macos/
+example/windows/
+example/linux/
+example/web/
+test/
