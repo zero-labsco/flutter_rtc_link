@@ -6,6 +6,10 @@
 - `LocalPublisher.cameraStream` (flutter_webrtc `MediaStream?`): exposes the camera media stream so consumers can render a local preview with a full `MediaStream` (binding only a track id does not render on Android). `WhipWhepPublisher` populates it from the active capture stream; `LiveKitPublisher` returns `null` (LiveKit previews its own tracks via `lk.VideoTrackRenderer`, not a flutter_webrtc stream).
   - `LocalPublisher.cameraStream`（`flutter_webrtc` 的 `MediaStream?`）：暴露摄像头媒体流，便于消费者用完整 `MediaStream` 渲染本地预览（只绑 track id 在 Android 上不会出画）。`WhipWhepPublisher` 从当前采集流填充该值；`LiveKitPublisher` 返回 `null`（LiveKit 经自身的 `lk.VideoTrackRenderer` 渲染预览，不依赖 flutter_webrtc 的 stream）。
 
+### Changed / 变更
+- Raised the `permission_handler` constraint from `^11.0.0` to `^12.0.0`. 12.0.0 only requires Android `compileSdk 35` (its `permission_handler_android` submodule is 13.0.0), which is still ≤ the default Flutter template's 36, so the AGP 9.1.0 / compileSdk 36 build is unaffected and the earlier "API ≤ 36" rationale still holds. The plugin's own usage of `permission_handler` (the `Permission` enum, `request()`, `status`, `openAppSettings()`) is unchanged.
+  - 将 `permission_handler` 约束由 `^11.0.0` 提升到 `^12.0.0`。12.0.0 仅需 Android `compileSdk 35`（底层 `permission_handler_android` 子模块为 13.0.0），仍 ≤ 默认 Flutter 模板的 36，因此 AGP 9.1.0 / compileSdk 36 构建不受影响，先前"API ≤ 36"的考量依旧成立；插件对其 Dart API（`Permission` 枚举、`request()`、`status`、`openAppSettings()`）的用法无变更。
+
 ## 0.1.2
 
 ### Fixed / 修复
