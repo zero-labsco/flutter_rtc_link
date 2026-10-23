@@ -18,7 +18,7 @@
 [![Style: effective dart](https://img.shields.io/badge/style-effective_dart-40c4ff.svg)](https://pub.dev/packages/effective_dart)
 [![Docs](https://img.shields.io/badge/docs-GitHub%20Pages-4cc38a.svg)](https://zero-labsco.github.io/flutter_rtc_link/)
 
-> **🔔 推荐升级：** `0.1.2` 提升了 Android 构建兼容性（下调 `permission_handler` 约束，使默认 Flutter 模板无需升级 AGP / Gradle 即可构建），并修复了示例应用设备页的 UI 溢出。建议所有用户升级到最新版本（`^0.1.2`）。
+> **🔔 推荐升级：** `0.1.3` 新增本地预览 API（`LocalPublisher.cameraStream`），并将 `permission_handler` 约束升级（Android `compileSdk 35`，仍与默认 Flutter 模板的 36 兼容）。建议所有用户升级到最新版本（`^0.1.3`）。
 
 🌐 **[文档站](https://zero-labsco.github.io/flutter_rtc_link/)** &nbsp;·&nbsp; 📦 **[在 pub.dev 查看](https://pub.dev/packages/flutter_rtc_link)** &nbsp;·&nbsp; 🔗 **[查看 GitHub 仓库](https://github.com/zero-labsco/flutter_rtc_link)**
 
@@ -83,7 +83,7 @@
 
 ```yaml
 dependencies:
-  flutter_rtc_link: ^0.1.2
+  flutter_rtc_link: ^0.1.3
 ```
 
 ### 从 GitHub 安装
@@ -93,7 +93,7 @@ dependencies:
   flutter_rtc_link:
     git:
       url: https://github.com/zero-labsco/flutter_rtc_link.git
-      ref: release/v0.1.2   # 把 0.1.2 换成你需要的版本
+      ref: release/v0.1.3   # 把 0.1.3 换成你需要的版本
 ```
 
 ### 平台配置
