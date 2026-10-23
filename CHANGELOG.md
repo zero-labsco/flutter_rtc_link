@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.3
+
+### Added / 新增
+- `LocalPublisher.cameraStream` (flutter_webrtc `MediaStream?`): exposes the camera media stream so consumers can render a local preview with a full `MediaStream` (binding only a track id does not render on Android). `WhipWhepPublisher` populates it from the active capture stream; `LiveKitPublisher` returns `null` (LiveKit previews its own tracks via `lk.VideoTrackRenderer`, not a flutter_webrtc stream).
+  - `LocalPublisher.cameraStream`（`flutter_webrtc` 的 `MediaStream?`）：暴露摄像头媒体流，便于消费者用完整 `MediaStream` 渲染本地预览（只绑 track id 在 Android 上不会出画）。`WhipWhepPublisher` 从当前采集流填充该值；`LiveKitPublisher` 返回 `null`（LiveKit 经自身的 `lk.VideoTrackRenderer` 渲染预览，不依赖 flutter_webrtc 的 stream）。
+
 ## 0.1.2
 
 ### Fixed / 修复
