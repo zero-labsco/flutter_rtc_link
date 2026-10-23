@@ -133,6 +133,13 @@ abstract class LocalPublisher {
   /// Camera track, if live. / 摄像头轨道（采集中）。
   MediaStreamTrack? get cameraTrack;
 
+  /// Camera stream, if live — used for local preview rendering. A
+  /// [RTCVideoRenderer] needs the whole [MediaStream]; passing only a track id
+  /// does not bind a stream on Android and leaves the preview black.
+  /// 摄像头媒体流（采集中时可用于本地预览渲染）。[RTCVideoRenderer] 需要完整的
+  /// [MediaStream]；只传 track id 在 Android 上不会绑定 stream，预览会黑屏。
+  MediaStream? get cameraStream;
+
   /// Microphone track, if live. / 麦克风轨道（采集中）。
   MediaStreamTrack? get micTrack;
 

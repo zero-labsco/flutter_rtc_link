@@ -37,6 +37,13 @@ class LiveKitPublisher extends LocalPublisher {
   MediaStreamTrack? get cameraTrack =>
       _cameraPublication?.track?.mediaStreamTrack;
 
+  // LiveKit previews its own tracks via lk.VideoTrackRenderer, not a
+  // flutter_webrtc MediaStream, so there is no stream to expose here.
+  // / LiveKit 通过自身的 lk.VideoTrackRenderer 渲染预览，不走 flutter_webrtc 的
+  // MediaStream，因此此处没有可供暴露的流。
+  @override
+  MediaStream? get cameraStream => null;
+
   @override
   MediaStreamTrack? get micTrack => _micPublication?.track?.mediaStreamTrack;
 

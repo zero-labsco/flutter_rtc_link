@@ -300,9 +300,13 @@ class _RtcDemoPageState extends State<RtcDemoPage> {
   Future<void> _attachPreview(LocalPublisher publisher) async {
     try {
       await _previewRenderer.initialize();
-      final track = publisher.cameraTrack;
-      if (track != null) {
-        await _previewRenderer.setSrcObject(stream: null, trackId: track.id);
+      // Render the camera's MediaStream directly — passing only a trackId does
+      // not bind a stream on Android, which leaves the preview black.
+      // / 直接渲染摄像头所在的 MediaStream；只传 trackId 在 Android 上不会绑定
+      // stream，会导致预览黑屏。
+      final stream = publisher.cameraStream;
+      if (stream != null) {
+        await _previewRenderer.setSrcObject(stream: stream);
       }
     } catch (e) {
       if (!mounted) return;

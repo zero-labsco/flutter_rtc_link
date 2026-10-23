@@ -33,6 +33,7 @@ class WhipWhepPublisher extends LocalPublisher {
   RTCPeerConnection? _pc;
   WhipResource? _whipResource;
   MediaStreamTrack? _cameraTrack;
+  MediaStream? _cameraStream;
   MediaStreamTrack? _micTrack;
   MediaStreamTrack? _screenTrack;
   RTCRtpSender? _videoSender;
@@ -50,6 +51,9 @@ class WhipWhepPublisher extends LocalPublisher {
 
   @override
   MediaStreamTrack? get cameraTrack => _cameraTrack;
+
+  @override
+  MediaStream? get cameraStream => _cameraStream;
 
   @override
   MediaStreamTrack? get micTrack => _micTrack;
@@ -70,6 +74,7 @@ class WhipWhepPublisher extends LocalPublisher {
     _maxClarity = maxClarity;
     final stream = await _captureVideo(facing, maxClarity);
     _cameraTrack = stream.getVideoTracks().first;
+    _cameraStream = stream;
     _currentFacing = facing;
     await _ensurePc();
     if (!_isScreenSharing) {
@@ -104,6 +109,7 @@ class WhipWhepPublisher extends LocalPublisher {
     final stream = await _captureVideo(facing, _maxClarity);
     final newTrack = stream.getVideoTracks().first;
     _cameraTrack = newTrack;
+    _cameraStream = stream;
     _currentFacing = facing;
     if (!_isScreenSharing) {
       await _videoSender?.replaceTrack(newTrack);
@@ -147,6 +153,7 @@ class WhipWhepPublisher extends LocalPublisher {
   Future<void> stopCamera() async {
     final track = _cameraTrack;
     _cameraTrack = null;
+    _cameraStream = null;
     if (!_isScreenSharing) {
       await _videoSender?.replaceTrack(null);
     }
@@ -221,6 +228,7 @@ class WhipWhepPublisher extends LocalPublisher {
     await _micTrack?.stop();
     await _screenTrack?.stop();
     _cameraTrack = null;
+    _cameraStream = null;
     _micTrack = null;
     _screenTrack = null;
     await _pc?.close();
