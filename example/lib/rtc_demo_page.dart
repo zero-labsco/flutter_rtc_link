@@ -40,11 +40,14 @@ class _RtcDemoPageState extends State<RtcDemoPage> {
   RtcStats? _latestStats;
   StreamSubscription<RtcEvent>? _eventSub;
   StreamSubscription<RtcStats>? _statsSub;
+  LocalPublisher? _publisher;
+  CameraFacing? _lastFacing;
 
   @override
   void dispose() {
     _eventSub?.cancel();
     _statsSub?.cancel();
+    _publisher?.status.removeListener(_onPublisherStatus);
     _previewRenderer.dispose();
     _session?.dispose();
     _engine?.dispose();
@@ -292,9 +295,39 @@ class _RtcDemoPageState extends State<RtcDemoPage> {
       _session = session;
     });
     final publisher = session.localPublisher!;
+    // Ask for camera + mic up front so the OS prompts are explicit and a denial
+    // is surfaced instead of failing silently inside startMic.
+    // / 提前申请相机 + 麦克风权限，让系统弹窗明确、被拒时也能显式提示，而不是在
+    // startMic 里静默失败。
+    try {
+      final results = await RtcPermissions.requestAll(<RtcPermission>[
+        RtcPermission.camera,
+        RtcPermission.microphone,
+      ]);
+      final denied = results.where((r) => !r.granted).toList();
+      if (denied.isNotEmpty && mounted) {
+        setState(
+          () => _log.add(
+            'permission denied: '
+            '${denied.map((d) => d.capability.name).join(', ')}',
+          ),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _log.add('permission request failed: $e'));
+    }
     await publisher.startCamera();
     await _attachPreview(publisher);
-    await publisher.startMic();
+    try {
+      await publisher.startMic();
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _log.add('mic failed: $e'));
+    }
+    _publisher = publisher;
+    _lastFacing = publisher.status.value.facing;
+    publisher.status.addListener(_onPublisherStatus);
   }
 
   Future<void> _attachPreview(LocalPublisher publisher) async {
@@ -314,6 +347,32 @@ class _RtcDemoPageState extends State<RtcDemoPage> {
     }
   }
 
+  void _onPublisherStatus() {
+    final publisher = _publisher;
+    if (publisher == null) return;
+    final status = publisher.status.value;
+    if (!status.cameraActive || status.facing == _lastFacing) return;
+    _lastFacing = status.facing;
+    _rebindPreview(publisher);
+  }
+
+  Future<void> _rebindPreview(LocalPublisher publisher) async {
+    // switchCamera swaps the capture device and stops the old track, so the
+    // preview renderer (still bound to the old MediaStream) must point at the
+    // new one — otherwise the preview freezes on the stopped track.
+    // / switchCamera 会换采集设备并停止旧轨道，预览渲染器仍绑在旧 MediaStream
+    // 上，必须改指新的 stream，否则画面冻结在已停止的旧轨道上。
+    try {
+      final stream = publisher.cameraStream;
+      if (stream != null) {
+        await _previewRenderer.setSrcObject(stream: stream);
+      }
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _log.add('preview rebind failed: $e'));
+    }
+  }
+
   Future<void> _subscribe() async {
     final session = _session;
     if (session == null) return;
@@ -323,6 +382,8 @@ class _RtcDemoPageState extends State<RtcDemoPage> {
   }
 
   Future<void> _leave() async {
+    _publisher?.status.removeListener(_onPublisherStatus);
+    _publisher = null;
     await _session?.leave();
     if (!mounted) return;
     setState(() {
