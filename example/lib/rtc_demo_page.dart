@@ -16,14 +16,21 @@ class RtcDemoPage extends StatefulWidget {
 }
 
 class _RtcDemoPageState extends State<RtcDemoPage> {
+  // Default endpoints target a local MediaMTX instance (WHIP/WHEP on :8889).
+  // Run MediaMTX, then `adb reverse tcp:8889 tcp:8889` so the phone reaches
+  // the PC at 127.0.0.1:8889. The stream name lives in the URL path
+  // (`rtc-link`); the `?stream=` query appended by the plugin is ignored by
+  // MediaMTX. / 默认指向本地 MediaMTX（WHIP/WHEP 监听 :8889）。运行 MediaMTX 后执行
+  // `adb reverse tcp:8889 tcp:8889`，手机即可经 127.0.0.1:8889 访问电脑。流名位于
+  // URL 路径（`rtc-link`），插件追加的 `?stream=` 查询参数会被 MediaMTX 忽略。
   final _whipCtrl = TextEditingController(
-    text: 'http://127.0.0.1:1985/rtc/v1/whip/',
+    text: 'http://127.0.0.1:8889/rtc-link/whip',
   );
   final _whepCtrl = TextEditingController(
-    text: 'http://127.0.0.1:1985/rtc/v1/whep/',
+    text: 'http://127.0.0.1:8889/rtc-link/whep',
   );
-  final _roomCtrl = TextEditingController(text: 'site-42');
-  final _streamCtrl = TextEditingController(text: 'cam-01');
+  final _roomCtrl = TextEditingController(text: 'rtc-link');
+  final _streamCtrl = TextEditingController(text: 'rtc-link');
 
   RtcEngine? _engine;
   RtcSession? _session;

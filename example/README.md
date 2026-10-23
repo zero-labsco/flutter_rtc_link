@@ -12,6 +12,28 @@ flutter run
 
 Requires a Flutter 3.35+ environment. The example targets Android `compileSdk 36` with AGP 9.1.0 by default.
 
+## Local RTC test with MediaMTX / 用本地 MediaMTX 测 RTC
+
+The example's RTC tab defaults to a **local MediaMTX** instance (`http://127.0.0.1:8889/rtc-link/whip` + `/whep`). No public server or account is required — everything runs on your own machine, which also works in networks that cannot reach public WHIP/WHEP endpoints (e.g. behind a firewall / regional blocks).
+
+/ 示例的 RTC 页默认指向**本地 MediaMTX**（`http://127.0.0.1:8889/rtc-link/whip` + `/whep`）。无需公共服务器或账号，全部跑在你自己的电脑上；在无法访问公共 WHIP/WHEP 端点的网络（如防火墙 / 区域限制）下也能用。
+
+1. Download MediaMTX (single Go binary, no config) for your OS from the [releases page](https://github.com/bluenviron/mediamtx/releases) and run it. WHIP/WHEP listens on `:8889` by default.
+   / 从 [releases](https://github.com/bluenviron/mediamtx/releases) 下载对应系统的 MediaMTX（单个 Go 二进制，免配置）并运行，WHIP/WHEP 默认监听 `:8889`。
+2. Forward the port to the phone over USB:
+   / 通过 USB 把端口映射给手机：
+   ```bash
+   adb reverse tcp:8889 tcp:8889
+   ```
+3. In the app's RTC tab the endpoints are pre-filled — just tap **join anchor** (publishes the camera via WHIP), then **subscribe** (plays it back via WHEP). You should see your own camera looped back, confirming the full WebRTC path.
+   / 应用 RTC 页已预填端点——直接点 **join anchor**（经 WHIP 推摄像头），再点 **subscribe**（经 WHEP 拉回），即可看到自己摄像头原路回放，验证整条 WebRTC 链路。
+
+> The stream name is the URL path segment (`rtc-link`); the `?stream=` query the plugin appends is ignored by MediaMTX. Both WHIP and WHEP URLs must share the same path segment for the loopback to match.
+> / 流名即 URL 路径段（`rtc-link`）；插件追加的 `?stream=` 查询会被 MediaMTX 忽略。WHIP 与 WHEP 路径段必须一致，回环才能对上。
+
+To use a different server (SRS / ZLMediaKit / a remote MediaMTX), just edit the `whip url` / `whep url` fields in the UI.
+/ 若要换用其它服务器（SRS / ZLMediaKit / 远程 MediaMTX），直接在界面里改 `whip url` / `whep url` 即可。
+
 ## Known issues / 已知问题
 
 ### `FilePickerPlugin` not found on AGP 9 hosts / AGP 9 宿主下找不到 FilePickerPlugin
