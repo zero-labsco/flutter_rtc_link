@@ -106,15 +106,31 @@ class WhipWhepPublisher extends LocalPublisher {
     final oldTrack = _cameraTrack;
     _cameraTrack = null;
     await oldTrack?.stop();
-    final stream = await _captureVideo(facing, _maxClarity);
-    final newTrack = stream.getVideoTracks().first;
-    _cameraTrack = newTrack;
-    _cameraStream = stream;
-    _currentFacing = facing;
-    if (!_isScreenSharing) {
-      await _videoSender?.replaceTrack(newTrack);
+    try {
+      final stream = await _captureVideo(facing, _maxClarity);
+      final newTrack = stream.getVideoTracks().first;
+      _cameraTrack = newTrack;
+      _cameraStream = stream;
+      _currentFacing = facing;
+      if (!_isScreenSharing) {
+        await _videoSender?.replaceTrack(newTrack);
+      }
+      _status.value = _status.value.copyWith(facing: facing);
+    } catch (e) {
+      // The old capture device is already released, so the camera really is
+      // off: report that instead of leaving a stale "camera active" status.
+      // 旧采集设备已释放，摄像头确实已关闭：如实上报，而不是留下"摄像头已开"的
+      // 失效状态。
+      final partial = _cameraTrack;
+      _cameraTrack = null;
+      _cameraStream = null;
+      if (!_isScreenSharing) {
+        await _videoSender?.replaceTrack(null);
+      }
+      await partial?.stop();
+      _status.value = _status.value.copyWith(cameraActive: false, facing: null);
+      rethrow;
     }
-    _status.value = _status.value.copyWith(facing: facing);
   }
 
   @override

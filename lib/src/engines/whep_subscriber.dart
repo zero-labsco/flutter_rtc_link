@@ -200,7 +200,11 @@ class WhepSubscriber extends RemoteSubscriber {
         level,
       );
       if (switched) {
-        _clarity.value = level;
+        // The engine replaced this object: the live subscriber is registered
+        // under the same stream id and already carries `level`, while `this`
+        // is disposed. Never touch a disposed notifier. /
+        // 引擎替换了本对象：存活的订阅器登记在同一 stream id 下且已带有 `level`，
+        // 而 `this` 已被销毁。绝不操作已销毁的 notifier。
         return;
       }
     }

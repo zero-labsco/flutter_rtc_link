@@ -40,6 +40,9 @@ void main() {
       // 同链路由类型 + 代次判定。
       expect(wifi.isSameLinkAs(wifi.copyWith()), isTrue);
       expect(wifi.isSameLinkAs(wifiRoamed), isFalse);
+      // A metered flip is a different link for policy purposes.
+      // 计费状态翻转在策略上算另一条链路。
+      expect(wifi.isSameLinkAs(wifi.copyWith(metered: true)), isFalse);
     });
   });
 

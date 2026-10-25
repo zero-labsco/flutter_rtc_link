@@ -112,11 +112,24 @@ class RoleTransfer {
     );
     final previous = previousAnchorIdentity ?? await _localIdentity(session);
     if (previous != null && previous != targetIdentity) {
-      await backend.setPublishGrant(
-        roomId: session.roomId,
-        identity: previous,
-        canPublish: false,
-      );
+      try {
+        await backend.setPublishGrant(
+          roomId: session.roomId,
+          identity: previous,
+          canPublish: false,
+        );
+      } catch (e) {
+        // Leaving the first grant in place would publish two anchors at once,
+        // so roll it back before surfacing the failure. /
+        // 保留第一次授权会导致两个牵头同时推流，因此在抛出前先回滚。
+        await _rollbackGrant(
+          session,
+          backend: backend,
+          identity: targetIdentity,
+          canPublish: false,
+        );
+        rethrow;
+      }
     }
     await _notify(
       session,
@@ -186,6 +199,37 @@ class RoleTransfer {
           error: RtcException(
             code: RtcErrorCodes.signalingFailed,
             message: 'Failed to send role-transfer notice: $e',
+            cause: e,
+          ),
+        ),
+      );
+    }
+  }
+
+  /// Best-effort rollback of a grant whose follow-up step failed.
+  /// 对后续步骤失败的授权做尽力回滚。
+  static Future<void> _rollbackGrant(
+    RtcSession session, {
+    required RoleGrantBackend backend,
+    required String identity,
+    required bool canPublish,
+  }) async {
+    try {
+      await backend.setPublishGrant(
+        roomId: session.roomId,
+        identity: identity,
+        canPublish: canPublish,
+      );
+    } catch (e) {
+      // The server already rejected the pairing change; the caller sees the
+      // original error and the mismatch shows up at the next permission sync.
+      // 服务端已拒绝该次配对变更；调用方看到的是原始错误，不一致会在下一次
+      // 权限同步时暴露。
+      session.emit(
+        RtcError(
+          error: RtcException(
+            code: RtcErrorCodes.signalingFailed,
+            message: 'Failed to roll back the publish grant for $identity: $e',
             cause: e,
           ),
         ),

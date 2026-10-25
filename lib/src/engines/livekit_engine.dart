@@ -27,6 +27,7 @@ class LiveKitEngine extends RtcEngine {
 
   final LiveKitSignaling _signaling;
   final Logger _logger;
+  bool _disposed = false;
 
   final StreamController<RtcEvent> _eventsCtrl =
       StreamController<RtcEvent>.broadcast();
@@ -44,6 +45,11 @@ class LiveKitEngine extends RtcEngine {
     required RtcRole role,
     String? identity,
   }) async {
+    // Joining after dispose() would create a session nobody ever tears down.
+    // dispose() 之后入会会创建一个永远无人回收的会话。
+    if (_disposed) {
+      throw StateError('LiveKitEngine has been disposed.');
+    }
     final room = lk.Room(
       roomOptions: lk.RoomOptions(
         adaptiveStream: _signaling.adaptiveStream,
@@ -80,11 +86,15 @@ class LiveKitEngine extends RtcEngine {
 
   @override
   Future<void> dispose() async {
+    // Idempotent: a second dispose() must be a no-op instead of re-closing
+    // controllers. / 幂等：第二次 dispose() 必须是空操作，而不是重复关闭控制器。
+    if (_disposed) return;
+    _disposed = true;
     for (final session in _sessions.toList()) {
       await session.dispose();
     }
     _sessions.clear();
-    await _eventsCtrl.close();
+    if (!_eventsCtrl.isClosed) await _eventsCtrl.close();
   }
 }
 
@@ -181,6 +191,7 @@ class LiveKitSession extends RtcSession {
   late final lk.EventsListener<lk.RoomEvent> _listener;
   LiveKitPublisher? _publisher;
   bool _disposed = false;
+  bool _closed = false;
 
   @override
   String get roomId => _roomId;
@@ -238,14 +249,17 @@ class LiveKitSession extends RtcSession {
   Future<void> unsubscribe(String streamId) async {
     final subscriber = _subscribers.remove(streamId);
     if (subscriber == null) return;
+    // Report the track's real kind; audio unsubscribe must not claim video.
+    // 上报轨道的真实类型；取消订阅音频时不得声称是视频。
+    final kind = _kindOf(subscriber.publication);
     for (final entry in _wantedSids.entries) {
       entry.value.remove(streamId);
     }
     await subscriber.dispose();
     _publishRemoteStreams();
-    _eventsCtrl.add(
-      RtcTrackUnsubscribed(streamId: streamId, kind: RtcTrackKind.video),
-    );
+    if (!_eventsCtrl.isClosed) {
+      _eventsCtrl.add(RtcTrackUnsubscribed(streamId: streamId, kind: kind));
+    }
     await _regrantWanted();
   }
 
@@ -269,6 +283,12 @@ class LiveKitSession extends RtcSession {
   @override
   Future<void> dispose() async {
     await leave();
+    // Idempotent: leave() already ran the teardown once, and the controllers
+    // must be closed exactly once (leave() then dispose() is a normal order).
+    // 幂等：leave() 已完成一次拆除，控制器只能关闭一次
+    // （leave() 后再 dispose() 是常见顺序）。
+    if (_closed) return;
+    _closed = true;
     await _eventsCtrl.close();
     await _remoteStreamsCtrl.close();
     await _statsCtrl.close();

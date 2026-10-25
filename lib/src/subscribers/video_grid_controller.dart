@@ -136,7 +136,22 @@ class VideoGridController extends ValueNotifier<GridState> {
     value = value.copyWith(
       streams: List<RemoteStream>.unmodifiable(streams),
       clearMain: !mainStillThere,
+      clarityOverrides: _prunedOverrides(streams),
     );
+  }
+
+  /// Drops clarity overrides whose stream no longer exists, so a long-running
+  /// room never accumulates stale entries. / 丢弃已不存在的流的清晰度覆盖，
+  /// 避免长时间运行的房间累积失效条目。
+  Map<String, ClarityLevel> _prunedOverrides(List<RemoteStream> streams) {
+    final overrides = value.clarityOverrides;
+    if (overrides.isEmpty) return overrides;
+    final live = <String>{for (final s in streams) s.streamId};
+    final pruned = <String, ClarityLevel>{
+      for (final entry in overrides.entries)
+        if (live.contains(entry.key)) entry.key: entry.value,
+    };
+    return pruned.length == overrides.length ? overrides : pruned;
   }
 
   /// Adds or updates a stream. / 新增或更新一路流。
@@ -154,6 +169,7 @@ class VideoGridController extends ValueNotifier<GridState> {
     value = value.copyWith(
       streams: List<RemoteStream>.unmodifiable(streams),
       clearMain: isMain,
+      clarityOverrides: _prunedOverrides(streams),
     );
   }
 

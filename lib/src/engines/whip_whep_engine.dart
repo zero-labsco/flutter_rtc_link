@@ -298,8 +298,18 @@ class WhipWhepSession extends RtcSession implements IceRestartable {
       _logger.fine('variant stream $candidateStreamId unavailable: $e');
       return false;
     }
-    await current.dispose();
+    // The session can go away while the new resource is being created; the
+    // fresh server-side resource must be released in that case.
+    // 创建新资源的期间会话可能已被释放，此时必须释放刚建好的服务端资源。
+    if (_disposed) {
+      await candidate.dispose();
+      return false;
+    }
+    // Register the replacement before dropping the old subscriber so the map
+    // never exposes a disposed object to the app. /
+    // 先登记替代者再丢弃旧订阅器，保证 map 绝不向应用暴露已销毁的对象。
     _subscribers[current.streamId] = candidate;
+    await current.dispose();
     _publishRemoteStreams();
     return true;
   }
