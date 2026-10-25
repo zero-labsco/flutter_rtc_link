@@ -181,7 +181,47 @@ Update all of these when the version changes / 改版本时必须同步以下全
 - `ios/flutter_rtc_link.podspec` `s.version = '<version>'` — the iOS native version shared by CocoaPods and SPM. / iOS 原生版本，CocoaPods 与 SPM 共用。
   - The SPM `Package.swift` has **no** version field (SPM versions come from the git tag), so there is nothing to bump there; the podspec `s.version` is the one that must move. / SPM 的 `Package.swift` **没有**版本字段（版本由 git tag 决定），那里没有要改的数字；podspec 的 `s.version` 才是必须同步处。
 - `README.md` / `README_zh.md` — the `flutter_rtc_link: ^<version>` install snippet, the `ref: release/v<version>` git snippet, and the top `🔔 Upgrade recommended` / `🔔 推荐升级` callout (summarize what `<version>` changed and recommend upgrading; never reference prior versions). / 两份 README 的安装片段 `flutter_rtc_link: ^<version>`、git 片段 `ref: release/v<version>`，以及顶部 `🔔 推荐升级` callout（简述 `<version>` 的改动并建议升级，不引用旧版本）。
-- `CHANGELOG.md` — a new `## <version>` section at the top. / 顶部新增 `## <version>` 条目。
+- `CHANGELOG.md` — a new `## <version>` section at the top, written in the house
+  style below. / 顶部新增 `## <version>` 条目，并按下面的统一写法撰写。
+
+### Changelog style / 变更日志写法
+
+`CHANGELOG.md` follows one strict layout (the same one `zero_adaptive_link`
+uses); copy it instead of inventing a new shape.
+/ `CHANGELOG.md` 遵循一套严格排版（与 `zero_adaptive_link` 相同）；照抄该风格，
+不要自创格式。
+
+- Every entry is **two lines**: the English sentence on the top-level `-`, then
+  the Chinese one on an indented `  - ` below it. Never merge them into one
+  line, and never wrap a line by hand.
+  / 每条改动**两行**：顶层 `-` 写英文句，其下缩进 `  - ` 写中文句。绝不合并成
+  一行，也不要手动折行。
+- A blank line follows each `## <version>` and each `### …` heading; entries
+  themselves sit back-to-back with no blank line between them.
+  / `## <version>` 与每个 `### …` 标题之后空一行；条目之间不留空行，紧密相连。
+- Open every entry with a verb: `Added …`, `Fixed …`, `Changed …`. There are no
+  nested bullet trees — fold the details into that one sentence, the way
+  `zero_adaptive_link` does.
+  / 每条以动词开头：`Added …`、`Fixed …`、`Changed …`。不存在三层嵌套列表——把细节
+  并进同一句长句，正如 `zero_adaptive_link` 的写法。
+- Section order inside a version: `### Added / 新增` → `### Changed / 优化` →
+  `### Fixed / 修复`; drop a section instead of leaving it empty.
+  / 单个版本内的小节顺序：`### Added / 新增` → `### Changed / 优化` →
+  `### Fixed / 修复`；没有内容就删掉该小节，不要留空。
+- The bilingual pair is mandatory: an entry with only one language is
+  incomplete, and the two languages never mix inside one sentence.
+  / 双语必须成对：只有一种语言的条目是不完整的，同一句内也绝不混用两种语言。
+
+Example / 示例：
+
+```markdown
+## 0.3.1
+
+### Fixed / 修复
+
+- Fixed `switchCamera()` leaving a stale "camera active" status when the capture fails: the old device is already released, so the camera is now reported as off.
+  - 修复采集失败时 `switchCamera()` 留下"摄像头已开启"失效状态的问题：旧采集设备已释放，现如实上报为已关闭。
+```
 
 Also review the docs for drift / 发版前还要审查文档内容是否需要更新：
 
