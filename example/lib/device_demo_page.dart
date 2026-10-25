@@ -275,7 +275,15 @@ class _DeviceDemoPageState extends State<DeviceDemoPage> {
   }
 
   Future<void> _readNfcTag() async {
-    await _provisioning.provisionViaNfc();
+    // A tag only carries the Wi-Fi credentials: read them into the form, then
+    // deliver them over BLE / SoftAP. / 标签只携带 Wi-Fi 凭据：先读进表单，
+    // 再经 BLE / SoftAP 下发。
+    final credential = await _provisioning.readNfcCredential();
+    if (!mounted || credential == null) return;
+    setState(() {
+      _ssidCtrl.text = credential.ssid;
+      _passwordCtrl.text = credential.password;
+    });
   }
 
   Future<void> _runOta() async {

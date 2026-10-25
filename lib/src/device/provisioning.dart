@@ -128,6 +128,7 @@ class ProvisionDevice {
     this.capabilities = const <ProvisionMethod>{},
     this.rssi,
     this.platformDevice,
+    this.dppUri,
   });
 
   /// Stable device id (BLE address, SoftAP SSID, …). / 稳定设备 id（BLE 地址、SoftAP SSID 等）。
@@ -144,6 +145,15 @@ class ProvisionDevice {
 
   /// Underlying platform object (e.g. `BluetoothDevice`). / 底层平台对象（如 `BluetoothDevice`）。
   final Object? platformDevice;
+
+  /// Wi-Fi Easy Connect (DPP) bootstrap URI scanned from the device QR code.
+  /// 从设备二维码扫到的 Wi-Fi Easy Connect（DPP）引导 URI。
+  ///
+  /// [ProvisionMethod.dpp] needs this `DPP:…` string; [id] is a BLE address or
+  /// a SoftAP SSID and is rejected as DPP content.
+  /// [ProvisionMethod.dpp] 需要这个 `DPP:…` 字符串；[id] 是 BLE 地址或 SoftAP
+  /// SSID，作为 DPP 内容会被拒绝。
+  final String? dppUri;
 
   /// Whether the device supports [method]. / 设备是否支持 [method]。
   bool supports(ProvisionMethod method) => capabilities.contains(method);
@@ -333,13 +343,30 @@ class DeviceProvisioning {
       _runMethod(ProvisionMethod.ble, device, wifi);
 
   /// Provisions via DPP (Android 10+). / 通过 DPP 配网（Android 10+）。
+  ///
+  /// [qrContent] must be the device's DPP bootstrap URI (`DPP:…`), not its id.
+  /// [qrContent] 必须是设备的 DPP 引导 URI（`DPP:…`），而不是设备 id。
   Future<bool> provisionViaDpp({required String qrContent}) async {
+    final content = qrContent.trim();
     _update(
       _status.copyWith(
         state: ProvisioningState.connecting,
         method: ProvisionMethod.dpp,
       ),
     );
+    if (!content.toUpperCase().startsWith('DPP:')) {
+      // A device id (BLE address / SoftAP SSID) is not a bootstrap URI: reject
+      // it here with a clear message rather than letting the system
+      // configurator fail with a generic error.
+      // 设备 id（BLE 地址 / SoftAP SSID）不是引导 URI：在此明确拒绝并给出可读
+      // 信息，而不是让系统配置器返回一个笼统失败。
+      return _fail(
+        ProvisionMethod.dpp,
+        ProvisionFailureReason.protocolMismatch,
+        'DPP needs the device bootstrap URI (DPP:…); "$content" is not one. '
+        'Set ProvisionDevice.dppUri from the scanned QR code.',
+      );
+    }
     final channel = _dpp;
     if (channel == null) {
       return _fail(
@@ -349,7 +376,7 @@ class DeviceProvisioning {
       );
     }
     try {
-      final ok = await channel.provision(qrContent: qrContent);
+      final ok = await channel.provision(qrContent: content);
       if (!ok) {
         return _fail(
           ProvisionMethod.dpp,
@@ -371,12 +398,48 @@ class DeviceProvisioning {
     }
   }
 
-  /// Provisions via NFC (reads a credential tag). / 通过 NFC 配网（读取凭据标签）。
-  Future<bool> provisionViaNfc() async {
+  /// Reads a credential tag without provisioning anything.
+  /// 只读取凭据标签，不做配网。
+  ///
+  /// This is the "tap a tag to learn the Wi-Fi password" flow: a tag carries
+  /// credentials only, so nothing reaches any device here. Deliver them with
+  /// [provisionViaBle] / [provisionViaSoftAp], or pass a device to
+  /// [provisionViaNfc] to read and deliver in one call.
+  /// 这就是"碰一碰拿到 Wi-Fi 密码"的流程：标签只携带凭据，此处不会下发给任何
+  /// 设备。可用 [provisionViaBle] / [provisionViaSoftAp] 下发，或给
+  /// [provisionViaNfc] 传入设备，一次调用完成读取 + 下发。
+  Future<WifiCredential?> readNfcCredential() async {
+    final channel = _nfc;
+    if (channel == null) {
+      _fail(
+        ProvisionMethod.nfc,
+        ProvisionFailureReason.unsupportedPlatform,
+        'No NFC channel configured.',
+      );
+      return null;
+    }
+    try {
+      return await channel.readCredentialTag();
+    } catch (e) {
+      _fail(ProvisionMethod.nfc, ProvisionFailureReason.unknown, '$e');
+      return null;
+    }
+  }
+
+  /// Provisions via NFC: reads a credential tag and delivers it to [device].
+  /// 通过 NFC 配网：读取凭据标签并下发给 [device]。
+  ///
+  /// A tag carries credentials only, so [device] is required — without one
+  /// nothing can be delivered and the call fails instead of reporting a
+  /// success that never reached the device.
+  /// 标签只携带凭据，因此 [device] 是必需的：没有设备就无法下发，此时直接失败，
+  /// 而不是上报一个从未到达设备的"成功"。
+  Future<bool> provisionViaNfc({ProvisionDevice? device}) async {
     _update(
       _status.copyWith(
         state: ProvisioningState.connecting,
         method: ProvisionMethod.nfc,
+        deviceId: device?.id,
       ),
     );
     final channel = _nfc;
@@ -396,18 +459,45 @@ class DeviceProvisioning {
           'No NFC credential tag presented.',
         );
       }
-      _update(
-        _status.copyWith(
-          state: ProvisioningState.success,
-          method: ProvisionMethod.nfc,
-          reason: ProvisionFailureReason.none,
-          message: 'Read credentials for ${credential.ssid} from NFC tag.',
-        ),
-      );
-      return true;
+      if (device == null) {
+        // Reading a tag says nothing about whether any device joined the
+        // network, so this must not masquerade as a success.
+        // 读到标签与设备是否入网无关，绝不能伪装成成功。
+        return _fail(
+          ProvisionMethod.nfc,
+          ProvisionFailureReason.unknown,
+          'Read credentials for ${credential.ssid} from the NFC tag, but no '
+          'device was given: pass a ProvisionDevice to deliver them, or call '
+          'readNfcCredential() when you only want to read the tag.',
+        );
+      }
+      return await _deliverTagCredential(device, credential);
     } catch (e) {
       return _fail(ProvisionMethod.nfc, ProvisionFailureReason.unknown, '$e');
     }
+  }
+
+  /// Delivers tag credentials over a transport the device supports.
+  /// 经设备支持的传输通道下发标签凭据。
+  Future<bool> _deliverTagCredential(
+    ProvisionDevice device,
+    WifiCredential credential,
+  ) async {
+    if (device.supports(ProvisionMethod.ble) && _ble != null) {
+      return _runBle(device, credential);
+    }
+    if (device.supports(ProvisionMethod.softAp) && _softAp != null) {
+      return _runSoftAp(device.id, credential);
+    }
+    if (_smartConfig != null) {
+      return provisionViaSmartConfig(credential);
+    }
+    return _fail(
+      ProvisionMethod.nfc,
+      ProvisionFailureReason.unsupportedPlatform,
+      'No transport (BLE / SoftAP / SmartConfig) available to deliver the NFC '
+      'credentials to device ${device.id}.',
+    );
   }
 
   /// Provisions via SoftAP. / 通过 SoftAP 配网。
@@ -469,9 +559,9 @@ class DeviceProvisioning {
       case ProvisionMethod.softAp:
         return _runSoftAp(device.id, wifi);
       case ProvisionMethod.dpp:
-        return provisionViaDpp(qrContent: device.id);
+        return provisionViaDpp(qrContent: device.dppUri ?? device.id);
       case ProvisionMethod.nfc:
-        return provisionViaNfc();
+        return provisionViaNfc(device: device);
       case ProvisionMethod.smartConfig:
         return provisionViaSmartConfig(wifi);
       case ProvisionMethod.auto:
