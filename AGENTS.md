@@ -112,9 +112,9 @@ overseas / cross-public-network links.
   - **标识符纯英文；注释英中双语（英文在前、中文在后）。**文档注释采用
     `/// English. / 中文。` 两行写法。
 - All files use **LF** line endings — run `tool/normalize-eol.ps1` after adding
-  files, and `dart format lib test example/lib tool` before committing.
+  files, and `dart format .` before committing.
   - 所有文件使用 **LF** 换行——新增文件后运行 `tool/normalize-eol.ps1`，提交前
-    运行 `dart format lib test example/lib tool`。
+    运行 `dart format .`。
 - Use Conventional Commits for both commit messages AND PR titles: `feat:`,
   `fix:`, `docs:`, `style:`, `refactor:`, `perf:`, `test:`, `build:`, `ci:`,
   `chore:`, `revert:`.

@@ -140,9 +140,9 @@ Use caret (`^`) constraints in `pubspec.yaml`; do not pin exact versions without
 
 ### Line endings
 
-The repository enforces LF via `.gitattributes` (`* text=auto eol=lf`). CI additionally renormalizes the tree before running `dart format`, and the `dart-format-fix.yml` workflow auto-commits formatting fixes.
+The repository enforces LF via `.gitattributes` (`* text=auto eol=lf`). CI renormalizes the tree and runs `dart format .` itself (self-healing, warns only), so a PR never fails for style. `dart-format-fix.yml` is **manual-only** (`workflow_dispatch`) now: its automatic commits used to race CI — the bot's push started another run, and an older cached formatter wrote the old style back, so CI turned red again. Run it from the Actions tab when you want a branch formatted and committed for you.
 
-> 仓库通过 `.gitattributes`（`* text=auto eol=lf`）强制 LF。CI 在运行 `dart format` 前会重新规范化工作树，`dart-format-fix.yml` 工作流会自动提交格式修复。
+> 仓库通过 `.gitattributes`（`* text=auto eol=lf`）强制 LF。CI 会重新规范化工作树并自行运行 `dart format .`（自愈，仅告警），因此 PR 不会因风格失败。`dart-format-fix.yml` 现在**仅手动触发**（`workflow_dispatch`）：它的自动提交曾与 CI 竞态——bot 的推送会再起一轮 run，且被缓存命中的旧版格式化器会把旧样式写回去，导致 CI 再次变红。需要时请在 Actions 页手动运行，由它格式化并推送。
 
 ## Testing
 
@@ -170,14 +170,14 @@ The RTC link can be validated with a browser plus a real phone, but **device man
 
 ## Pull Request Process
 
-1. **Update CHANGELOG.md** under an `## [Unreleased]` section (or create one if missing). Describe what changed and why.
+1. **Update CHANGELOG.md** under the `## <version>` section you are releasing (see AGENTS.md for the two-line EN/ZH entry style). Describe what changed and why.
 2. **Update documentation** if your change affects public API or user-facing behavior (README.md, README_zh.md, `website/pages/`).
 3. **Bilingual comments** must be added for any new code.
-4. **CI must pass** — the CI workflow runs format check, analyze, and tests on every PR.
+4. **CI must pass** — the CI workflow runs `dart format` (self-healing: it formats the tree and only warns), analyze, and tests on every PR.
 5. **Keep PRs focused** — one feature/fix per PR makes review faster.
 6. **Link related issues** in the PR description (e.g., `Closes #123`).
 
-> PR 流程：1) 在 CHANGELOG.md 的 `## [Unreleased]` 节更新变更说明；2) 若影响公开 API 或用户行为，同步更新 README/docs；3) 新代码必须加英中双语注释；4) CI 必须通过；5) 一个 PR 只做一件事，便于审查；6) 在 PR 描述中关联相关 Issue（如 `Closes #123`）。
+> PR 流程：1) 在 CHANGELOG.md 目标版本的 `## <version>` 节更新变更说明（条目写法见 AGENTS.md）；2) 若影响公开 API 或用户行为，同步更新 README/docs；3) 新代码必须加英中双语注释；4) CI 必须通过（`dart format` 自愈、仅告警，analyze 与测试为硬性检查）；5) 一个 PR 只做一件事，便于审查；6) 在 PR 描述中关联相关 Issue（如 `Closes #123`）。
 
 ### PR Title Convention
 
