@@ -196,9 +196,8 @@ class StatusChip extends StatelessWidget {
           const SizedBox(width: 7),
           Text(
             label.toUpperCase(),
-            style: Theme.of(
-              context,
-            ).textTheme.monoLabel?.copyWith(color: color),
+            style: Theme.of(context).textTheme.monoLabel
+                ?.copyWith(color: color),
           ),
         ],
       ),
@@ -239,9 +238,8 @@ class MetricTile extends StatelessWidget {
           const SizedBox(height: 4),
           Text(
             value,
-            style: Theme.of(
-              context,
-            ).textTheme.monoValue?.copyWith(color: accent ?? scheme.onSurface),
+            style: Theme.of(context).textTheme.monoValue
+                ?.copyWith(color: accent ?? scheme.onSurface),
           ),
         ],
       ),
@@ -367,9 +365,8 @@ class ReadoutRow extends StatelessWidget {
           Expanded(
             child: Text(
               value,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: color ?? scheme.onSurface,
-              ),
+              style: Theme.of(context).textTheme.bodyMedium
+                  ?.copyWith(color: color ?? scheme.onSurface),
             ),
           ),
         ],

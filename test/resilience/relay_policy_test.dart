@@ -46,9 +46,8 @@ void main() {
 
     test('direct mode keeps STUN ahead of TURN', () {
       // 直连模式下 STUN 排在 TURN 之前。
-      final ordered = const RelayPlanner(
-        servers: <IceServer>[turnEu, stun],
-      ).orderFor(RelayMode.direct);
+      final ordered = const RelayPlanner(servers: <IceServer>[turnEu, stun])
+          .orderFor(RelayMode.direct);
       expect(ordered.first.urls, stun.urls);
       expect(ordered.last.urls, turnEu.urls);
     });

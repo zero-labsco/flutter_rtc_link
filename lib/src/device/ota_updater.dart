@@ -247,9 +247,8 @@ class OtaUpdater {
         }
         final contentRange = response.headers['content-range'];
         if (contentRange != null) {
-          final match = RegExp(
-            r'bytes\s+(\d+)-(\d+)?/(\d+|\*)',
-          ).firstMatch(contentRange);
+          final match = RegExp(r'bytes\s+(\d+)-(\d+)?/(\d+|\*)')
+              .firstMatch(contentRange);
           if (match != null) {
             final start = int.tryParse(match.group(1)!);
             final parsedTotal = int.tryParse(match.group(3)!);
