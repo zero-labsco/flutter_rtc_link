@@ -89,6 +89,7 @@ extension InstrumentTextTheme on TextTheme {
   /// Mono micro-label (section headers, field labels). / 等宽微标签（节标题、字段标签）。
   TextStyle? get monoLabel => TextStyle(
     fontFamily: _monoFamily,
+    fontFamilyFallback: _cjkFallback,
     fontSize: 11,
     height: 1.4,
     letterSpacing: 1.6,
@@ -99,6 +100,7 @@ extension InstrumentTextTheme on TextTheme {
   /// Mono numeric readout. / 等宽数值读数。
   TextStyle? get monoValue => TextStyle(
     fontFamily: _monoFamily,
+    fontFamilyFallback: _cjkFallback,
     fontSize: 15,
     height: 1.3,
     letterSpacing: 0.4,
@@ -109,6 +111,7 @@ extension InstrumentTextTheme on TextTheme {
   /// Large metric display. / 大号指标展示。
   TextStyle? get metricDisplay => TextStyle(
     fontFamily: _monoFamily,
+    fontFamilyFallback: _cjkFallback,
     fontSize: 28,
     height: 1.15,
     letterSpacing: -0.5,
@@ -124,6 +127,19 @@ String? get _monoFamily {
   if (Platform.isAndroid) return 'monospace';
   return null;
 }
+
+/// CJK fallback so device names / Chinese text do not render as tofu boxes when
+/// the mono family lacks those glyphs. The engine still appends the platform
+/// default font at the end, so missing names are ignored safely.
+/// 中文字体兜底：等宽字体不含中文字形时，设备名等中文文本不至于显示为方框。
+/// 引擎末尾仍会追加平台默认字体，因此写错的名字会被安全忽略。
+const List<String> _cjkFallback = <String>[
+  'Noto Sans CJK SC',
+  'Noto Sans SC',
+  'PingFang SC',
+  'Microsoft YaHei',
+  'Apple SD Gothic Neo',
+];
 
 /// Builds the example app theme (dark instrument panel).
 /// 构建 example 应用主题（暗色仪表台）。
@@ -163,6 +179,7 @@ ThemeData buildAppTheme() {
       .copyWith(
         bodyMedium: TextStyle(
           fontFamily: _monoFamily,
+          fontFamilyFallback: _cjkFallback,
           fontSize: 13,
           height: 1.5,
           letterSpacing: 0.2,
