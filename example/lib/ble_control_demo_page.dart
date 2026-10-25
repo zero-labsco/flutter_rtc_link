@@ -98,8 +98,10 @@ class _BleControlDemoPageState extends State<BleControlDemoPage> {
                   padding: const EdgeInsets.only(top: 8),
                   child: Text(
                     _error!,
-                    style: Theme.of(context).textTheme.bodyMedium
-                        ?.copyWith(color: status.error, fontSize: 11),
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: status.error,
+                      fontSize: 11,
+                    ),
                   ),
                 ),
               for (final device in _devices) _deviceRow(device, status),
