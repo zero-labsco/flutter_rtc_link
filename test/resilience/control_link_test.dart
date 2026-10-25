@@ -46,8 +46,9 @@ void main() {
 
     test('reports a path that misses the latency budget', () {
       // 上报不满足时延预算的路径。
-      final selection = const ControlLinkRouter(rttBudgetMs: 200)
-          .select(<ControlLinkPath>[slowWan]);
+      final selection = const ControlLinkRouter(
+        rttBudgetMs: 200,
+      ).select(<ControlLinkPath>[slowWan]);
       expect(selection!.withinBudget, isFalse);
       expect(selection.reason, ControlLinkSelectionReason.onlyOption);
     });
