@@ -5,6 +5,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_rtc_link/flutter_rtc_link.dart';
 
+import 'gatt_inspector.dart';
 import 'widgets/instrument.dart';
 
 /// BLE control demo: scan → connect over GATT → joystick teleoperation.
@@ -33,6 +34,7 @@ class _BleControlDemoPageState extends State<BleControlDemoPage> {
   StreamSubscription<DeviceEvent>? _eventSub;
   bool _watchdogTripped = false;
   bool _scanning = false;
+  bool _scanAll = false;
   String? _error;
 
   @override
@@ -72,6 +74,24 @@ class _BleControlDemoPageState extends State<BleControlDemoPage> {
                       onPressed: _disconnect,
                     ),
                 ],
+              ),
+              Padding(
+                padding: const EdgeInsets.only(top: 10),
+                child: Wrap(
+                  spacing: 8,
+                  children: <Widget>[
+                    ChoiceChip(
+                      label: const Text('Teleop'),
+                      selected: !_scanAll,
+                      onSelected: (_) => setState(() => _scanAll = false),
+                    ),
+                    ChoiceChip(
+                      label: const Text('All devices'),
+                      selected: _scanAll,
+                      onSelected: (_) => setState(() => _scanAll = true),
+                    ),
+                  ],
+                ),
               ),
               if (_error != null)
                 Padding(
@@ -156,7 +176,7 @@ class _BleControlDemoPageState extends State<BleControlDemoPage> {
   Widget _deviceRow(BleDevice device, AppStatusColors status) {
     final selected = device.id == _selected?.id;
     return GestureDetector(
-      onTap: () => _confirmConnect(device),
+      onTap: () => _onDeviceTap(device),
       child: Container(
         margin: const EdgeInsets.only(top: 8),
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
@@ -210,10 +230,17 @@ class _BleControlDemoPageState extends State<BleControlDemoPage> {
       // Bluetooth usage description. Request before scanning so it does not fail
       // with a permission error. / Android 12+ 需要蓝牙扫描 / 连接权限，iOS 需要
       // 蓝牙使用说明；扫描前先申请，避免直接抛权限错误。
-      final results = await RtcPermissions.requestAll(<RtcPermission>[
+      final permissions = <RtcPermission>[
         RtcPermission.bluetoothScan,
         RtcPermission.bluetoothConnect,
-      ]);
+      ];
+      // Unfiltered ("All devices") scans need location on Android 10/11 to
+      // return results. / "全部设备"无过滤扫描在 Android 10/11 上需要定位权限
+      // 才会返回结果。
+      if (_scanAll) {
+        permissions.add(RtcPermission.locationWhenInUse);
+      }
+      final results = await RtcPermissions.requestAll(permissions);
       final denied = results.where((r) => !r.granted).toList();
       if (denied.isNotEmpty) {
         if (!mounted) return;
@@ -228,7 +255,12 @@ class _BleControlDemoPageState extends State<BleControlDemoPage> {
         setState(() => _error = 'Bluetooth is off.');
         return;
       }
-      final devices = await _discoverer.scan();
+      // Teleop mode filters to the robot service; "All devices" lists everything
+      // via the protocol-agnostic [BleScanner]. / Teleop 模式按机器人服务过滤；
+      // "All devices"通过协议无关的 [BleScanner] 列出全部设备。
+      final devices = _scanAll
+          ? await BleScanner().scan()
+          : await _discoverer.scan();
       if (!mounted) return;
       setState(() => _devices = devices);
     } catch (e) {
@@ -283,6 +315,21 @@ class _BleControlDemoPageState extends State<BleControlDemoPage> {
     if (confirmed == true && mounted) {
       await _connect(device);
     }
+  }
+
+  /// Routes a device tap: in "All devices" mode open the generic GATT inspector
+  /// (speaker / sensor / any peripheral); in "Teleop" mode run the robot
+  /// connect flow. / 设备点击路由：在 "All devices" 模式下打开通用 GATT 检视器
+  ///（音响 / 传感器 / 任意外设）；在 "Teleop" 模式下走机器人连接流程。
+  Future<void> _onDeviceTap(BleDevice device) async {
+    if (_scanAll) {
+      await showDialog(
+        context: context,
+        builder: (_) => GattInspector(device: device),
+      );
+      return;
+    }
+    await _confirmConnect(device);
   }
 
   Future<void> _connect(BleDevice device) async {

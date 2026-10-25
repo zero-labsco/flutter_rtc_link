@@ -61,6 +61,11 @@
 - **机器人远控** —— 摇杆速度、独立通道的 PTZ、遥测、对讲接入，以及指令超时 / 发送
   被拒 / 断链时 500ms 内自动停车的看门狗；另提供基于 BLE GATT 的持久控制通道
   （`BleTeleopChannel`），可直连、免网络远控。
+- **面向任意设备的通用 BLE** —— `BleScanner` 可发现附近任意 BLE 设备，
+  `BleGattClient` 负责连接、发现 GATT 服务并暴露原始的 `read` / `write` /
+  `subscribe`——不做任何机器人或 ESP 契约假设，因此音响 / 传感器 / 外设类项目
+  同样能用上插件的 BLE 能力。基于 `flutter_blue_plus`，依赖树中恰好只有一个
+  蓝牙库。
 - **物联网设备四件套** —— 多通道 `DeviceProvisioning`（BLE → DPP/QR → NFC →
   SoftAP → SmartConfig 自动降级）、`OtaUpdater`、`DeviceLogCollector`（本地缓存 +
   批量补传）与 `Diagnostics`（stats + 网络探测 + 日志 → JSON/Markdown）。

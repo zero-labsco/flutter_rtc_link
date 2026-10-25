@@ -8,6 +8,11 @@
   - `FlutterBluePlusBleLink` resolves the GATT service + command/telemetry characteristics, negotiates a larger MTU (256), subscribes to telemetry notifications, and auto-reconnects on a drop (capped, exponential backoff). / `FlutterBluePlusBleLink` 解析 GATT 服务与指令 / 遥测特征、协商更大 MTU（256）、订阅遥测通知，并在断线后自动重连（有上限、指数退避）。
   - `BleTeleopDiscoverer` scans for the teleop GATT service; `BleDevice` keeps the public API free of `flutter_blue_plus` types. Command/telemetry reuse the JSON envelopes of the other channels. / `BleTeleopDiscoverer` 扫描遥测 GATT 服务；`BleDevice` 让公开 API 不暴露 `flutter_blue_plus` 类型。指令 / 遥测复用其它通道的 JSON 封包。
   - Example `ble_control_demo_page` and website docs (`ble_control.md`, `zh/`) with the GATT contract. / 示例 `ble_control_demo_page` 与文档站（`ble_control.md`、中文版）含 GATT 契约。
+- Protocol-agnostic BLE for any device (speaker, sensor, peripheral — not just robots). / 面向任意设备（音响、传感器、外设——不限于机器人）的、与协议无关的通用 BLE。
+  - `BleScanner` discovers nearby devices with no service filter (or narrowed to `serviceUuids`), returning the same `BleDevice` the teleop path uses. / `BleScanner` 无需服务过滤即可发现附近设备（也可按 `serviceUuids` 收敛），返回与遥测路径相同的 `BleDevice`。
+  - `BleGattClient` connects to a `BleDevice`, discovers services, and exposes raw `read` / `write` / `subscribe` plus a `connectionState` stream — no teleop / ESP contract assumed. / `BleGattClient` 连接 `BleDevice`、发现服务，并暴露原始的 `read` / `write` / `subscribe` 与连接状态流——不做任何遥测 / ESP 契约假设。
+  - `BleScanner` and `BleGattClient` are exported from the package root and built on `flutter_blue_plus`, keeping exactly one Bluetooth library in the dependency tree. / `BleScanner` 与 `BleGattClient` 均从包根导出，基于 `flutter_blue_plus`，使依赖树中恰好只有一个蓝牙库。
+  - Example `ble_control_demo_page` adds a **Teleop / All devices** toggle: "All devices" connects via `BleGattClient` and shows the GATT services / characteristics (tap a readable characteristic to read it). / 示例 `ble_control_demo_page` 新增 **Teleop / All devices** 切换："All devices" 经 `BleGattClient` 连接并展示 GATT 服务 / 特征（点击可读取的特征即可读取值）。
 
 ## 0.2.0
 

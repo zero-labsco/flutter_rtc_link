@@ -63,3 +63,32 @@ final channel = DualTeleopChannel(
 ```
 
 网络为主、BLE 为辅：即使网络链路断了，BLE 仍能持续送达停车指令。
+
+## 面向任意设备的通用 BLE
+
+上面的遥测通道是**机器人专属**的（它专门查找遥测 GATT 服务）。对于**音响、
+传感器或任何其它外设**，请使用与协议无关的通用 BLE 原语——它们不做任何服务
+或协议假设，且公开 API 不暴露 `flutter_blue_plus` 类型：
+
+```dart
+// 发现附近设备（不传 serviceUuids 即列出全部）。
+final devices = await BleScanner().scan();
+
+// 连接其中一个并查看其 GATT 布局。
+final client = BleGattClient(devices.first);
+await client.connect();
+final services = await client.discoverServices();   // List<BleGattService>
+for (final s in services) {
+  for (final c in s.characteristics) {
+    if (c.canRead) final value = await client.read(c.uuid);
+    if (c.canWrite) await client.write(c.uuid, [0x01]);
+    if (c.canNotify) client.subscribe(c.uuid).listen(print);
+  }
+}
+await client.disconnect();
+```
+
+`BleGattClient` 暴露 `read` / `write`（带或不带响应）/ `subscribe` 与
+`connectionState` 流，并在开启 `autoReconnect` 时于断线后自动重连。`BleScanner`
+与 `BleGattClient` 均从包根导出，基于 `flutter_blue_plus`，因此依赖树中恰好
+只有一个蓝牙库。

@@ -69,3 +69,34 @@ final channel = DualTeleopChannel(
 
 Network is primary, BLE is secondary: BLE keeps delivering stop commands even
 when the network link dies.
+
+## Generic BLE for any device
+
+The teleop channel above is robot-specific (it looks for the teleop GATT
+service). For a **speaker, sensor or any other peripheral**, use the
+protocol-agnostic BLE primitives — they make no service or protocol assumption
+and keep the public API free of `flutter_blue_plus` types:
+
+```dart
+// Discover nearby devices (omit serviceUuids to list everything).
+final devices = await BleScanner().scan();
+
+// Connect to one and inspect its GATT layout.
+final client = BleGattClient(devices.first);
+await client.connect();
+final services = await client.discoverServices();   // List<BleGattService>
+for (final s in services) {
+  for (final c in s.characteristics) {
+    if (c.canRead) final value = await client.read(c.uuid);
+    if (c.canWrite) await client.write(c.uuid, [0x01]);
+    if (c.canNotify) client.subscribe(c.uuid).listen(print);
+  }
+}
+await client.disconnect();
+```
+
+`BleGattClient` exposes `read` / `write` (with or without response) /
+`subscribe` and a `connectionState` stream, and auto-reconnects on a drop when
+`autoReconnect` is set. Both `BleScanner` and `BleGattClient` are exported from
+the package root and built on `flutter_blue_plus`, so the dependency tree keeps
+exactly one Bluetooth library.

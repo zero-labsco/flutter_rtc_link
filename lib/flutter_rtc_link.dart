@@ -56,6 +56,13 @@ export 'src/robot/ble/ble_discoverer.dart';
 export 'src/robot/ble/ble_link.dart';
 export 'src/robot/ble/ble_teleop_channel.dart';
 export 'src/robot/ble/flutter_blue_plus_link.dart';
+
+// Protocol-agnostic BLE (discovery + raw GATT read/write/notify) for any
+// device — speaker, sensor, peripheral — not just robots. / 与协议无关的通用
+// BLE（发现 + 原始 GATT 读写/通知），适用于任意设备——音响、传感器、外设等，
+// 不限于机器人。
+export 'src/ble/ble_scanner.dart';
+export 'src/ble/ble_gatt_client.dart';
 export 'src/robot/robot_controller.dart';
 export 'src/robot/teleop_channel.dart';
 export 'src/subscribers/remote_subscriber.dart';
