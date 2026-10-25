@@ -155,6 +155,54 @@ These are safety-critical; do not "optimize" them away.
   `chore/`, etc.
 - PR titles MUST follow Conventional Commits.
 
+### Pull request body template / PR 正文模板
+
+AI coding agents (CodeBuddy, Trae, Cursor, Claude Code, GitHub Copilot, Codex,
+etc.) and contributors SHOULD follow the body template below when opening PRs.
+Keep the `###` section structure and fill in real content. Use English as the
+primary language and Chinese as the secondary one (EN-primary, ZH-secondary)
+for every section, and brand the assistant with **Zero Buddy** (two words, NOT
+"ZeroBuddy") at the end.
+/ AI 编码智能体（CodeBuddy、Trae、Cursor、Claude Code、GitHub Copilot、Codex
+等）与贡献者开 PR 时应遵循以下正文模板。保留 `###` 章节结构并填入真实内容，每个
+章节采用英文为主、中文为辅，文末以 **Zero Buddy**（两个单词，不要写成
+"ZeroBuddy"）署名。
+
+```markdown
+### Summary / 摘要
+
+<one-line plain-English summary> + <对应中文一句话摘要>
+
+### Changes / 变更
+
+- <change bullet, EN> / <中文说明>
+- <change bullet, EN> / <中文说明>
+
+### Context / 背景
+
+<why this change is needed, EN> / <改动背景的中文说明>
+
+### Checklist / 检查项
+
+- [ ] Title follows Conventional Commits / 标题符合约定式提交
+- [ ] CI checks pass after merge / 合入后 CI 通过
+
+## Test plan
+
+- [ ] <how to verify, EN> / <验证方式>
+
+🤖 Generated with [Zero Buddy](https://www.zerolabsco.com)
+```
+
+Notes / 说明:
+
+- The PR **title** stays English-only and MUST follow Conventional Commits;
+  bilingual content belongs to the body only.
+  / PR **标题**仅用英文且必须符合约定式提交；双语内容只放在正文。
+- `CONTRIBUTING.md` points here, so this template is the single source of truth
+  for the PR body. / `CONTRIBUTING.md` 指向此处，因此本模板是 PR 正文的唯一
+  事实来源。
+
 ### Definition of done / 完成标准
 
 ```bash
