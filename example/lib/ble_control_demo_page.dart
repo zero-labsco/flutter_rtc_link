@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_rtc_link/flutter_rtc_link.dart';
 
@@ -63,14 +64,12 @@ class _BleControlDemoPageState extends State<BleControlDemoPage> {
                     icon: Icons.bluetooth_searching,
                     onPressed: _scanning ? null : _scan,
                   ),
-                  InstrumentButton(
-                    label: robot == null ? 'connect' : 'disconnect',
-                    icon: robot == null ? Icons.link : Icons.link_off,
-                    primary: robot == null,
-                    onPressed: _selected == null
-                        ? null
-                        : (robot == null ? _connect : _disconnect),
-                  ),
+                  if (robot != null)
+                    InstrumentButton(
+                      label: 'disconnect',
+                      icon: Icons.link_off,
+                      onPressed: _disconnect,
+                    ),
                 ],
               ),
               if (_error != null)
@@ -155,40 +154,40 @@ class _BleControlDemoPageState extends State<BleControlDemoPage> {
 
   Widget _deviceRow(BleDevice device, AppStatusColors status) {
     final selected = device.id == _selected?.id;
-    return Container(
-      margin: const EdgeInsets.only(top: 8),
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-      decoration: BoxDecoration(
-        color: selected ? status.ok.withValues(alpha: 0.14) : null,
-        borderRadius: BorderRadius.circular(6),
-        border: Border.all(
-          color: selected
-              ? status.ok
-              : Theme.of(context).colorScheme.outlineVariant,
+    return GestureDetector(
+      onTap: () => _confirmConnect(device),
+      child: Container(
+        margin: const EdgeInsets.only(top: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        decoration: BoxDecoration(
+          color: selected ? status.ok.withValues(alpha: 0.14) : null,
+          borderRadius: BorderRadius.circular(6),
+          border: Border.all(
+            color: selected
+                ? status.ok
+                : Theme.of(context).colorScheme.outlineVariant,
+          ),
         ),
-      ),
-      child: Row(
-        children: <Widget>[
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                Text(
-                  device.label,
-                  style: Theme.of(context).textTheme.monoValue,
-                ),
-                Text(
-                  '${device.id} · ${device.rssi} dBm',
-                  style: Theme.of(context).textTheme.monoLabel,
-                ),
-              ],
+        child: Row(
+          children: <Widget>[
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  Text(
+                    device.label,
+                    style: Theme.of(context).textTheme.monoValue,
+                  ),
+                  Text(
+                    '${device.id} · ${device.rssi} dBm',
+                    style: Theme.of(context).textTheme.monoLabel,
+                  ),
+                ],
+              ),
             ),
-          ),
-          InstrumentButton(
-            label: selected ? 'selected' : 'select',
-            onPressed: () => setState(() => _selected = device),
-          ),
-        ],
+            const Icon(Icons.chevron_right, size: 18),
+          ],
+        ),
       ),
     );
   }
@@ -242,9 +241,39 @@ class _BleControlDemoPageState extends State<BleControlDemoPage> {
     );
   }
 
-  Future<void> _connect() async {
-    final device = _selected;
-    if (device == null) return;
+  /// Apple-style confirmation before connecting: tap a device, then a
+  /// [CupertinoAlertDialog] asks the operator to confirm. / 连接前的苹果风二次
+  /// 确认：点设备后弹出 [CupertinoAlertDialog] 让操作员确认。
+  Future<void> _confirmConnect(BleDevice device) async {
+    setState(() => _selected = device);
+    final confirmed = await showCupertinoDialog<bool>(
+      context: context,
+      builder: (ctx) => CupertinoAlertDialog(
+        title: const Text('Connect to this device?'),
+        content: Text(
+          '${device.label}\n${device.id}\n${device.rssi} dBm',
+          style: const TextStyle(fontSize: 13),
+        ),
+        actions: <CupertinoDialogAction>[
+          CupertinoDialogAction(
+            isDestructiveAction: true,
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Cancel'),
+          ),
+          CupertinoDialogAction(
+            isDefaultAction: true,
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Connect'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true && mounted) {
+      await _connect(device);
+    }
+  }
+
+  Future<void> _connect(BleDevice device) async {
     final channel = BleTeleopChannel.forDevice(device);
     final robot = RobotController(channel: channel);
     try {
