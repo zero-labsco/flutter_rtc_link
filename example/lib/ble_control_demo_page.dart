@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_rtc_link/flutter_rtc_link.dart';
@@ -222,6 +223,11 @@ class _BleControlDemoPageState extends State<BleControlDemoPage> {
         );
         return;
       }
+      if (!await _ensureBluetoothOn()) {
+        if (!mounted) return;
+        setState(() => _error = 'Bluetooth is off.');
+        return;
+      }
       final devices = await _discoverer.scan();
       if (!mounted) return;
       setState(() => _devices = devices);
@@ -242,16 +248,22 @@ class _BleControlDemoPageState extends State<BleControlDemoPage> {
   }
 
   /// Apple-style confirmation before connecting: tap a device, then a
-  /// [CupertinoAlertDialog] asks the operator to confirm. / 连接前的苹果风二次
-  /// 确认：点设备后弹出 [CupertinoAlertDialog] 让操作员确认。
+  /// [CupertinoAlertDialog] asks the operator to confirm. When a device is
+  /// already connected the wording becomes a *switch*. / 连接前的苹果风二次
+  /// 确认：点设备后弹出 [CupertinoAlertDialog] 让操作员确认；若已连接设备，文案
+  /// 变为"切换"。
   Future<void> _confirmConnect(BleDevice device) async {
     setState(() => _selected = device);
+    final switching = _robot != null;
     final confirmed = await showCupertinoDialog<bool>(
       context: context,
       builder: (ctx) => CupertinoAlertDialog(
-        title: const Text('Connect to this device?'),
+        title: Text(
+          switching ? 'Switch to this device?' : 'Connect to this device?',
+        ),
         content: Text(
-          '${device.label}\n${device.id}\n${device.rssi} dBm',
+          '${device.label}\n${device.id}\n${device.rssi} dBm'
+          '${switching ? '\n\nCurrent connection will be disconnected.' : ''}',
           style: const TextStyle(fontSize: 13),
         ),
         actions: <CupertinoDialogAction>[
@@ -274,6 +286,14 @@ class _BleControlDemoPageState extends State<BleControlDemoPage> {
   }
 
   Future<void> _connect(BleDevice device) async {
+    if (!await _ensureBluetoothOn()) {
+      if (mounted) setState(() => _error = 'Bluetooth is required to connect.');
+      return;
+    }
+    // Switching devices: tear down the previous connection first so we do not
+    // leak the old link / controller. / 切换设备：先断开旧连接，避免旧链路 /
+    // 控制器泄漏。
+    if (_robot != null) await _disconnect();
     final channel = BleTeleopChannel.forDevice(device);
     final robot = RobotController(channel: channel);
     try {
@@ -309,5 +329,54 @@ class _BleControlDemoPageState extends State<BleControlDemoPage> {
       _watchdogTripped = false;
       _telemetry = const RobotTelemetry();
     });
+  }
+
+  /// Ensures Bluetooth is powered on; if not, shows an Apple-style dialog and
+  /// (where supported) attempts to turn it on. Returns false if the operator
+  /// cancels or Bluetooth stays off. / 确保蓝牙已开启；若未开启则弹出苹果风
+  /// 对话框，并在支持的平台尝试开启。操作员取消或仍关闭时返回 false。
+  Future<bool> _ensureBluetoothOn() async {
+    BluetoothAdapterState state;
+    try {
+      state = await FlutterBluePlus.adapterState.first;
+    } catch (_) {
+      return false;
+    }
+    if (state == BluetoothAdapterState.on) return true;
+    if (!mounted) return false;
+    final proceed = await showCupertinoDialog<bool>(
+      context: context,
+      builder: (ctx) => CupertinoAlertDialog(
+        title: const Text('Bluetooth is off'),
+        content: const Text(
+          'This feature needs Bluetooth. Turn it on to continue.',
+        ),
+        actions: <CupertinoDialogAction>[
+          CupertinoDialogAction(
+            isDestructiveAction: true,
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Cancel'),
+          ),
+          CupertinoDialogAction(
+            isDefaultAction: true,
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Enable'),
+          ),
+        ],
+      ),
+    );
+    if (proceed != true) return false;
+    try {
+      await FlutterBluePlus.turnOn();
+    } catch (_) {
+      // iOS / unsupported platforms cannot enable Bluetooth programmatically.
+      // iOS / 不支持的平台无法以编程方式开启蓝牙。
+    }
+    try {
+      return await FlutterBluePlus.adapterState.first ==
+          BluetoothAdapterState.on;
+    } catch (_) {
+      return false;
+    }
   }
 }
