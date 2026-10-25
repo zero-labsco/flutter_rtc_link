@@ -1,5 +1,67 @@
 # Changelog
 
+## 0.3.1
+
+### Fixed / 修复
+- Project-wide bug sweep: resource leaks, crash paths and protocol correctness
+  across every module. / 全项目缺陷清理：各模块的资源泄漏、崩溃路径与协议正确性。
+  - `protocomm`: AES-CTR dropped the intra-block remainder, so every message
+    after a non-16-byte payload was garbled — the counter now follows one
+    continuous keystream. / AES-CTR 丢弃块内余数，导致非 16 字节整数倍载荷之后
+    的所有消息错位——计数器现遵循一条连续 keystream。
+  - `protocomm`: `setup1` failed open, so a device omitting `SessionResp1`
+    skipped Proof-of-Possession authentication; it now raises. / setup1 失败
+    开放，省略 SessionResp1 的设备会跳过所有权证明鉴权；现在改为抛错。
+  - `PbReader` / `PbWriter`: bounds checks, malformed-field tolerance and a
+    negative varint guard. / 边界检查、畸形字段容错与负数 varint 防护。
+  - OTA: verify the server's resume start offset, reuse a single `http.Client`,
+    and release the BLE link on failure (`try/finally`). / 校验服务端续传起始
+    偏移、复用单个 http.Client，并在失败时释放 BLE 连接。
+  - Log collector: verify the MQTT connection (batches were silently dropped),
+    disconnect stale clients, guard concurrent flushes and tolerate corrupt
+    cache lines. / 校验 MQTT 连接（此前批次被静默丢弃）、释放旧 client、防并发
+    flush 并容忍损坏的缓存行。
+  - Provisioning: poll for a terminal Wi-Fi state instead of reading it once;
+    release the scan subscription when scanning throws. / 轮询终态 Wi-Fi 状态
+    而非只读一次；扫描抛错时释放扫描订阅。
+  - BLE: `BleTeleopChannel.dispose` now stops the transport (a failed connect
+    left the auto-reconnect timer running); the link clears stale characteristic
+    handles on reconnect, resets its retry budget, guards concurrent connects
+    and closes its controllers. / dispose 现在停止传输层（连接失败后自动重连
+    定时器仍在运行）；链路在重连时清除陈旧特征句柄、重置重试预算、防并发连接并
+    关闭控制器。
+  - `DualTeleopChannel`: no longer crashes when `disconnect()` runs before
+    `connect()`, and can be reconnected afterwards. / 在 connect() 之前调用
+    disconnect() 不再崩溃，且之后可重新连接。
+  - MQTT teleop: guard concurrent connects, release the previous client and
+    subscription, verify the connection state and tolerate non-JSON telemetry.
+    / 防并发连接、释放旧 client 与订阅、校验连接状态并容忍非 JSON 遥测。
+  - Resilience: dispose the previous session on reconnect (it was only left),
+    serialise attaches, re-check `disposed` after awaits, rate-limit recovery
+    actions, re-enable video after reconnect, only stop the robot on a
+    background pause, require a session in `confirmResume` and clear orphan
+    resume tickets. / 重连时释放前一个会话（此前仅 leave）、串行化 attach、await
+    后复检 disposed、恢复动作限流、重连后重新开启视频、仅在后台暂停时停车、
+    confirmResume 要求会话存在并清除孤儿恢复票据。
+  - WHIP/WHEP: drain responses, close the HTTP client, resolve relative
+    `Location` headers, buffer trickle ICE candidates until the resource exists,
+    guard concurrent peer-connection creation and clean up on failure. / 排空
+    响应、关闭 HTTP 客户端、解析相对 Location 头、缓存 trickle ICE 候选直到资源
+    就绪、防并发建连并在失败时清理。
+  - `simulcast`: every `case` now breaks — falling through made all layers end
+    up at `full ~/ 4`. / 每个 case 现在都 break——直通会让所有层最终变成
+    full ~/ 4。
+  - Emits after `dispose()` are ignored instead of throwing. / dispose() 之后
+    的 emit 被忽略而非抛异常。
+  - LAN discovery: stop a discovery cancelled before it started, and surface
+    errors instead of losing them. / 停止启动前被取消的 discovery，并上报错误
+    而非丢失。
+  - Scanners: drop the previous scan's replayed results and handle stream
+    errors. / 丢弃上一次扫描的回放结果并处理流错误。
+  - `stream_relay`: `stop()` catches every error (not just `RtcException`) so
+    cleanup always finishes, and releases the Egress HTTP client. / stop() 捕获
+    所有异常（不只 RtcException）以保证清理完成，并释放 Egress HTTP 客户端。
+
 ## 0.3.0
 
 ### Added / 新增
