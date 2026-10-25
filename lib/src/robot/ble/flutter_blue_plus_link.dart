@@ -124,6 +124,10 @@ class FlutterBluePlusBleLink implements BleLink {
       }
       if (_telemetryChar != null) {
         await _telemetryChar!.setNotifyValue(true);
+        // A reconnect re-resolves the characteristic; drop any prior listener
+        // first so telemetry frames are not delivered twice. / 重连会重新解析特征，
+        // 先取消旧监听，避免遥测帧被投递两次。
+        await _notifySub?.cancel();
         _notifySub = _telemetryChar!.onValueReceived.listen(_onTelemetryBytes);
       }
       _connected = true;

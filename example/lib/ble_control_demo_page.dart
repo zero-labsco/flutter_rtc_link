@@ -206,6 +206,23 @@ class _BleControlDemoPageState extends State<BleControlDemoPage> {
       _error = null;
     });
     try {
+      // Android 12+ requires BLUETOOTH_SCAN / BLUETOOTH_CONNECT; iOS needs the
+      // Bluetooth usage description. Request before scanning so it does not fail
+      // with a permission error. / Android 12+ 需要蓝牙扫描 / 连接权限，iOS 需要
+      // 蓝牙使用说明；扫描前先申请，避免直接抛权限错误。
+      final results = await RtcPermissions.requestAll(<RtcPermission>[
+        RtcPermission.bluetoothScan,
+        RtcPermission.bluetoothConnect,
+      ]);
+      final denied = results.where((r) => !r.granted).toList();
+      if (denied.isNotEmpty) {
+        if (!mounted) return;
+        setState(
+          () => _error =
+              'Bluetooth permission denied: ${denied.map((d) => d.capability.name).join(', ')}',
+        );
+        return;
+      }
       final devices = await _discoverer.scan();
       if (!mounted) return;
       setState(() => _devices = devices);

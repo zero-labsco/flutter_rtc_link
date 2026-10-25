@@ -58,13 +58,12 @@ class BleTeleopChannel implements TeleopChannel {
       if (telemetry != null) _telemetryCtrl.add(telemetry);
     });
     _stateSub = _link.connectionState.listen((connected) {
-      if (!connected) {
-        // Mirror the MQTT channel: surface a disconnected telemetry frame so
-        // downstream consumers (RobotController) see the link drop at once.
-        // 与 MQTT 通道一致：广播一帧"离线"遥测，使下游（RobotController）立即
-        // 感知链路断开。
-        _telemetryCtrl.add(const RobotTelemetry(online: false));
-      }
+      // Mirror the MQTT channel: surface a connected / disconnected telemetry
+      // frame so downstream consumers (RobotController, the example link tile)
+      // reflect the link state even when the device sends no telemetry of its
+      // own. / 与 MQTT 通道一致：广播"在线 / 离线"遥测帧，即使设备自身不下发
+      // 遥测，下游（RobotController、示例链路标签）也能正确反映链路状态。
+      _telemetryCtrl.add(RobotTelemetry(online: connected));
     });
   }
 
