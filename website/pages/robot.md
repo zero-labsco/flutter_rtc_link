@@ -95,3 +95,14 @@ final selection = ControlLinkRouter(rttBudgetMs: 200).select(paths);
 
 The router also reports whether the chosen path is inside `rttBudgetMs`, so the
 UI can warn the operator before they start driving.
+
+For robot-side control with **no network at all**, use `BleTeleopChannel.forDevice(device)` — a fourth `TeleopChannel` that rides a persistent BLE GATT link (scan with `BleTeleopDiscoverer`). It also works as the `secondary` of `DualTeleopChannel`, so a stop command still reaches the robot when the network link dies:
+
+```dart
+final channel = DualTeleopChannel(
+  primary: DataChannelTeleopChannel(...),   // or MqttTeleopChannel
+  secondary: BleTeleopChannel.forDevice(device),
+);
+```
+
+See [BLE Teleop Control](./ble_control) for the GATT contract.

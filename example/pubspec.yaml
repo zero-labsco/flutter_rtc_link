@@ -2,7 +2,7 @@ name: flutter_rtc_link_example
 description: Example app for the flutter_rtc_link plugin (RTC, robot teleoperation, device management).
 publish_to: none
 
-version: 0.2.0
+version: 0.3.0
 
 environment:
   sdk: ">=3.9.0 <4.0.0"

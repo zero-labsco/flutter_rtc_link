@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.3.0
+
+### Added / 新增
+- Persistent BLE GATT teleop control channel. / 基于 BLE GATT 的持久控制通道。
+  - `BleTeleopChannel implements TeleopChannel` drops straight into `RobotController` / `DualTeleopChannel` — the watchdog, epoch gating and keepalive are unchanged; only the transport changes. / `BleTeleopChannel implements TeleopChannel`，可直接接入 `RobotController` / `DualTeleopChannel`——看门狗、epoch 门控与保活逻辑不变，仅传输换了。
+  - `FlutterBluePlusBleLink` resolves the GATT service + command/telemetry characteristics, negotiates a larger MTU (256), subscribes to telemetry notifications, and auto-reconnects on a drop (capped, exponential backoff). / `FlutterBluePlusBleLink` 解析 GATT 服务与指令 / 遥测特征、协商更大 MTU（256）、订阅遥测通知，并在断线后自动重连（有上限、指数退避）。
+  - `BleTeleopDiscoverer` scans for the teleop GATT service; `BleDevice` keeps the public API free of `flutter_blue_plus` types. Command/telemetry reuse the JSON envelopes of the other channels. / `BleTeleopDiscoverer` 扫描遥测 GATT 服务；`BleDevice` 让公开 API 不暴露 `flutter_blue_plus` 类型。指令 / 遥测复用其它通道的 JSON 封包。
+  - Example `ble_control_demo_page` and website docs (`ble_control.md`, `zh/`) with the GATT contract. / 示例 `ble_control_demo_page` 与文档站（`ble_control.md`、中文版）含 GATT 契约。
+
 ## 0.2.0
 
 ### Added / 新增
