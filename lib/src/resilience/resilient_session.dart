@@ -20,21 +20,24 @@ import 'relay_policy.dart';
 
 /// Builds a fresh session (called on connect and on every reconnect).
 /// 构建全新会话（连接与每次重连时调用）。
-typedef RtcSessionFactory =
-    Future<RtcSession> Function({
-      required String roomId,
-      required RtcRole role,
-      String? identity,
-    });
+typedef RtcSessionFactory = Future<RtcSession> Function({
+  required String roomId,
+  required RtcRole role,
+  String? identity,
+});
 
 /// Restarts ICE on a live session. / 在存活会话上重启 ICE。
-typedef IceRestarter =
-    Future<void> Function(RtcSession session, RelayMode mode);
+typedef IceRestarter = Future<void> Function(
+  RtcSession session,
+  RelayMode mode,
+);
 
 /// Applies a clarity change decided by the supervisor.
 /// 应用由监控器决定的清晰度变更。
-typedef ClarityDegrader =
-    Future<void> Function(RemoteSubscriber subscriber, ClarityLevel level);
+typedef ClarityDegrader = Future<void> Function(
+  RemoteSubscriber subscriber,
+  ClarityLevel level,
+);
 
 /// Requests a keyframe for a frozen stream. / 为冻结的流请求关键帧。
 typedef KeyframeRequester = Future<void> Function(String streamId);
