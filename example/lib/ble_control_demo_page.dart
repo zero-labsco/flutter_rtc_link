@@ -1,0 +1,267 @@
+import 'dart:async';
+
+import 'package:flutter/material.dart';
+import 'package:flutter_rtc_link/flutter_rtc_link.dart';
+
+import 'widgets/instrument.dart';
+
+/// BLE control demo: scan → connect over GATT → joystick teleoperation.
+/// BLE 控制演示：扫描 → 经 GATT 连接 → 摇杆远控。
+///
+/// Shows [BleTeleopChannel] wired into the same [RobotController] the network
+/// demo uses, so the watchdog, epoch gating and keepalive behaviour is
+/// identical — only the transport changes. / 把 [BleTeleopChannel] 接到与网络
+/// 演示相同的 [RobotController]，看门狗、epoch 门控与保活行为完全一致——只是
+/// 传输换成了 BLE。
+class BleControlDemoPage extends StatefulWidget {
+  const BleControlDemoPage({super.key});
+
+  @override
+  State<BleControlDemoPage> createState() => _BleControlDemoPageState();
+}
+
+class _BleControlDemoPageState extends State<BleControlDemoPage> {
+  final _discoverer = BleTeleopDiscoverer();
+  List<BleDevice> _devices = const <BleDevice>[];
+  BleDevice? _selected;
+  BleTeleopChannel? _channel;
+  RobotController? _robot;
+  RobotTelemetry _telemetry = const RobotTelemetry();
+  StreamSubscription<RobotTelemetry>? _telemetrySub;
+  StreamSubscription<DeviceEvent>? _eventSub;
+  bool _watchdogTripped = false;
+  bool _scanning = false;
+  String? _error;
+
+  @override
+  void dispose() {
+    _telemetrySub?.cancel();
+    _eventSub?.cancel();
+    _robot?.dispose();
+    _channel?.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final status = AppStatusColors.of(context);
+    final robot = _robot;
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(14, 4, 14, 24),
+      children: <Widget>[
+        const SectionLabel('scan'),
+        Panel(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: <Widget>[
+              Wrap(
+                spacing: 10,
+                runSpacing: 10,
+                children: <Widget>[
+                  InstrumentButton(
+                    label: _scanning ? 'scanning…' : 'scan ble',
+                    icon: Icons.bluetooth_searching,
+                    onPressed: _scanning ? null : _scan,
+                  ),
+                  InstrumentButton(
+                    label: robot == null ? 'connect' : 'disconnect',
+                    icon: robot == null ? Icons.link : Icons.link_off,
+                    primary: robot == null,
+                    onPressed: _selected == null
+                        ? null
+                        : (robot == null ? _connect : _disconnect),
+                  ),
+                ],
+              ),
+              if (_error != null)
+                Padding(
+                  padding: const EdgeInsets.only(top: 8),
+                  child: Text(
+                    _error!,
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: status.error,
+                      fontSize: 11,
+                    ),
+                  ),
+                ),
+              for (final device in _devices) _deviceRow(device, status),
+            ],
+          ),
+        ),
+        if (robot != null) ...<Widget>[
+          const SectionLabel('drive'),
+          Panel(
+            trailing: StatusChip(
+              label: _watchdogTripped ? 'watchdog' : 'armed',
+              color: _watchdogTripped ? status.error : status.ok,
+              active: !_watchdogTripped,
+            ),
+            child: Joystick(
+              size: 180,
+              onChanged: _onJoystick,
+              onRelease: () => robot.stop(),
+            ),
+          ),
+          const SectionLabel('telemetry'),
+          Row(
+            children: <Widget>[
+              Expanded(
+                child: MetricTile(
+                  label: 'battery',
+                  value: '${_telemetry.battery.toStringAsFixed(0)} %',
+                  accent: _batteryAccent(status),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: MetricTile(
+                  label: 'linear',
+                  value: '${_telemetry.linearSpeed.toStringAsFixed(2)} m/s',
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: MetricTile(
+                  label: 'angular',
+                  value: '${_telemetry.angularSpeed.toStringAsFixed(2)} rad/s',
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: MetricTile(
+                  label: 'link',
+                  value: _telemetry.online ? 'online' : 'offline',
+                  accent: _telemetry.online ? status.ok : status.idle,
+                ),
+              ),
+            ],
+          ),
+        ],
+        const SectionLabel('safety'),
+        Panel(
+          child: Text(
+            'Same watchdog as the network demo stops the robot within '
+            '${robot?.watchdogTimeout.inMilliseconds ?? 500} ms of the last '
+            'command. BLE auto-reconnects on a drop, but link loss still trips '
+            'the watchdog if it lasts too long.',
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _deviceRow(BleDevice device, AppStatusColors status) {
+    final selected = device.id == _selected?.id;
+    return Container(
+      margin: const EdgeInsets.only(top: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(
+        color: selected ? status.ok.withValues(alpha: 0.14) : null,
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(
+          color: selected
+              ? status.ok
+              : Theme.of(context).colorScheme.outlineVariant,
+        ),
+      ),
+      child: Row(
+        children: <Widget>[
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Text(
+                  device.label,
+                  style: Theme.of(context).textTheme.monoValue,
+                ),
+                Text(
+                  '${device.id} · ${device.rssi} dBm',
+                  style: Theme.of(context).textTheme.monoLabel,
+                ),
+              ],
+            ),
+          ),
+          InstrumentButton(
+            label: selected ? 'selected' : 'select',
+            onPressed: () => setState(() => _selected = device),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Color _batteryAccent(AppStatusColors status) {
+    final battery = _telemetry.battery;
+    if (battery <= 15) return status.error;
+    if (battery <= 35) return status.warn;
+    return status.ok;
+  }
+
+  Future<void> _scan() async {
+    setState(() {
+      _scanning = true;
+      _error = null;
+    });
+    try {
+      final devices = await _discoverer.scan();
+      if (!mounted) return;
+      setState(() => _devices = devices);
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _error = 'Scan failed: $e');
+    } finally {
+      if (mounted) setState(() => _scanning = false);
+    }
+  }
+
+  void _onJoystick(double dx, double dy) {
+    final robot = _robot;
+    if (robot == null) return;
+    robot.move(
+      velocityFromJoystick(dx: dx, dy: dy, maxLinear: 1.0, maxAngular: 1.5),
+    );
+  }
+
+  Future<void> _connect() async {
+    final device = _selected;
+    if (device == null) return;
+    final channel = BleTeleopChannel.forDevice(device);
+    final robot = RobotController(channel: channel);
+    try {
+      await robot.connect(deviceId: device.id);
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _error = 'Connect failed: $e');
+      await channel.dispose();
+      return;
+    }
+    _telemetrySub = robot.telemetry.listen((t) {
+      if (!mounted) return;
+      setState(() => _telemetry = t);
+    });
+    _eventSub = robot.events.listen((event) {
+      if (event is RobotWatchdogTriggered && mounted) {
+        setState(() => _watchdogTripped = true);
+      }
+    });
+    setState(() {
+      _channel = channel;
+      _robot = robot;
+    });
+  }
+
+  Future<void> _disconnect() async {
+    await _robot?.disconnect();
+    await _channel?.dispose();
+    if (!mounted) return;
+    setState(() {
+      _robot = null;
+      _channel = null;
+      _watchdogTripped = false;
+      _telemetry = const RobotTelemetry();
+    });
+  }
+}

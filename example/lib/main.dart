@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'ble_control_demo_page.dart';
 import 'device_demo_page.dart';
 import 'diagnostics_demo_page.dart';
 import 'resilience_demo_page.dart';
@@ -48,6 +49,7 @@ class _HomePageState extends State<HomePage> {
         (label: 'link', icon: Icons.sensors, page: RtcDemoPage()),
         (label: 'robot', icon: Icons.gamepad, page: RobotDemoPage()),
         (label: 'device', icon: Icons.memory, page: DeviceDemoPage()),
+        (label: 'ble', icon: Icons.bluetooth, page: BleControlDemoPage()),
         (label: 'diag', icon: Icons.monitor_heart, page: DiagnosticsDemoPage()),
         (label: 'resil', icon: Icons.healing, page: ResilienceDemoPage()),
       ];
