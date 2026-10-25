@@ -262,6 +262,7 @@ ClarityLevel degradeClarity(
   WeakNetworkPolicy policy = const WeakNetworkPolicy(),
 }) {
   const ladder = <ClarityLevel>[
+    ClarityLevel.p2160,
     ClarityLevel.p1080,
     ClarityLevel.p720,
     ClarityLevel.p540,
@@ -270,8 +271,8 @@ ClarityLevel degradeClarity(
   final floor = ladder.indexOf(policy.minClarity);
   final index = ladder.indexOf(current);
   if (index < 0) {
-    // auto (or unknown): cap at 540p so the degrader always makes progress.
-    // auto（或未知）：封顶到 540p，保证降级一定有效果。
+    // auto (or unknown): cap at minClarity so the degrader always makes progress.
+    // auto（或未知）：封顶到 minClarity，保证降级一定有效果。
     return ladder[(floor < 0 ? ladder.length - 1 : floor)];
   }
   final next = index + 1;

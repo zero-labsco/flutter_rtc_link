@@ -325,6 +325,12 @@ class WhipWhepPublisher extends LocalPublisher {
       await old.close();
     }
     await _ensurePc(configuration: configuration);
+    // The rebuilt peer connection starts its byte counters from ~0; reset the
+    // samplers so the first post-restart sample does not compute a bogus
+    // negative bitrate. / 重建的 peer connection 字节计数器从 ~0 开始；重置采样器，
+    // 避免重连后的首帧算出虚假负码率。
+    _videoSampler.reset();
+    _audioSampler.reset();
     await _videoSender?.replaceTrack(_isScreenSharing ? screen : camera);
     await _audioSender?.replaceTrack(mic);
   }

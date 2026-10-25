@@ -49,8 +49,20 @@ double computeBitrateKbps(int bytesDelta, Duration duration) {
 /// Stateful sampler converting raw stats snapshots into [RtcStats].
 /// 有状态采样器：把原始 stats 快照转换为 [RtcStats]。
 class RtcStatsSampler {
+  RtcStatsSampler({DateTime Function()? clock}) : _now = clock ?? DateTime.now;
+
+  final DateTime Function() _now;
   int _lastBytes = 0;
   DateTime? _lastSampleAt;
+
+  /// Resets the byte baseline. Call it after a peer connection is rebuilt
+  /// (ICE restart / handover) so the next sample starts from a clean counter.
+  /// 重置字节基线。在 peer connection 重建（ICE 重启 / 切换）后调用，
+  /// 使下一帧采样从干净的计数器开始。
+  void reset() {
+    _lastBytes = 0;
+    _lastSampleAt = null;
+  }
 
   /// Samples one stream's stats. / 采样一路流的 stats。
   RtcStats sample({
@@ -59,7 +71,7 @@ class RtcStatsSampler {
     required List<StatsReport> reports,
     bool outbound = false,
   }) {
-    final now = DateTime.now();
+    final now = _now();
     final report = findRtpReport(reports, kind, outbound: outbound);
     var bitrateKbps = 0.0;
     var packetLossPercent = 0.0;
@@ -73,7 +85,13 @@ class RtcStatsSampler {
       final bytes = _intOf(values[outbound ? 'bytesSent' : 'bytesReceived']);
       if (bytes != null) {
         final last = _lastSampleAt;
-        if (last != null) {
+        // The byte counter resets to ~0 when the peer connection is rebuilt
+        // (ICE restart / handover); a smaller value here is a counter reset,
+        // not a negative transfer, so skip the bitrate for this one sample
+        // instead of reporting a bogus negative rate.
+        // 字节计数器在 peer connection 重建（ICE 重启 / 切换）时会归零；此处出现
+        // 更小的值属于计数器重置而非负传输，因此本帧跳过码率，避免上报虚假负值。
+        if (last != null && bytes >= _lastBytes) {
           bitrateKbps = computeBitrateKbps(
             bytes - _lastBytes,
             now.difference(last),

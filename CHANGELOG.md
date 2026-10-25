@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.2.0
+
+### Added / 新增
+- 4K (2160p) publish support. / 4K（2160p）发布支持。
+  - New `ClarityLevel.p2160` (height 2160, label `2160p`, suggested full-layer cap 8000 kbps). / 新增 `ClarityLevel.p2160`（高度 2160，标签 `2160p`，满层建议码率上限 8000 kbps）。
+  - LiveKit `capturePresetFor` / `simulcastLayersFor` now map `p2160` to `VideoParametersPresets.h2160_169` (capture 3840×2160 with 180p/540p/1080p/2160p simulcast layers). / LiveKit 的 `capturePresetFor` / `simulcastLayersFor` 现在将 `p2160` 映射到 `h2160_169`（采集 3840×2160，simulcast 层为 180p/540p/1080p/2160p）。
+  - WHIP/WHEP publishers derive the 16:9 capture width from the clarity height, so `p2160` automatically requests 3840×2160. / WHIP/WHEP 推流器按清晰度高度推导 16:9 采集宽度，`p2160` 自动请求 3840×2160。
+  - Clarity selector UI in `RtcControlBar` and the example `rtc_demo_page` now offer `2160p`. / `RtcControlBar` 与示例 `rtc_demo_page` 的清晰度选择器现已提供 `2160p`。
+  - `fromHeight` maps 1080p < height ≤ 2160 to `p2160`, and `degradeClarity` ladder starts at `p2160`. / `fromHeight` 将 1080p < 高度 ≤ 2160 映射为 `p2160`，`degradeClarity` 阶梯顶端为 `p2160`。
+
+### Fixed / 修复
+- Negative bitrate after ICE restart / network handover: `RtcStatsSampler` compared the new peer connection's byte counter (which resets to ~0) against the previous cumulative baseline, producing a bogus negative `bitrateKbps` for one sample. The sampler now treats a counter reset as zero bitrate, and `WhipWhepPublisher.restartIce` resets both the video and audio samplers. `RtcStatsSampler` also accepts an injectable clock for deterministic tests.
+  - ICE 重启 / 网络切换后的负码率：`RtcStatsSampler` 会把新 peer connection 的字节计数器（归零）与之前累计的基线比较，导致某一帧 `bitrateKbps` 出现虚假负值。现改为将计数器重置视为零码率，且 `WhipWhepPublisher.restartIce` 会同时重置视频与音频采样器。`RtcStatsSampler` 现支持注入可测时钟。
+
 ## 0.1.3
 
 ### Added / 新增

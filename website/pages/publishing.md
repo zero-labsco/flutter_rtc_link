@@ -37,6 +37,7 @@ Publishing always opens simulcast layers when the server supports them:
 
 | `maxClarity` | Layers published |
 | --- | --- |
+| `p2160` | 2160p / 1080p / 540p |
 | `p1080` | 1080p / 720p / 360p |
 | `p720` | 720p / 360p |
 | `p360` | 360p |

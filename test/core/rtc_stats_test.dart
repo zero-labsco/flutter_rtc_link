@@ -11,7 +11,8 @@ void main() {
       expect(ClarityLevel.fromHeight(480), ClarityLevel.p540);
       expect(ClarityLevel.fromHeight(700), ClarityLevel.p720);
       expect(ClarityLevel.fromHeight(1080), ClarityLevel.p1080);
-      expect(ClarityLevel.fromHeight(2160), ClarityLevel.p1080);
+      expect(ClarityLevel.fromHeight(2160), ClarityLevel.p2160);
+      expect(ClarityLevel.fromHeight(3840), ClarityLevel.p2160);
     });
 
     test('VideoQuality is an alias of ClarityLevel', () {

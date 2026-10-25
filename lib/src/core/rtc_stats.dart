@@ -22,7 +22,10 @@ enum ClarityLevel {
   p720(label: '720p', height: 720, maxBitrateKbps: 1700),
 
   /// 1080p. / 1080p。
-  p1080(label: '1080p', height: 1080, maxBitrateKbps: 3000);
+  p1080(label: '1080p', height: 1080, maxBitrateKbps: 3000),
+
+  /// 2160p (4K). / 2160p（4K）。
+  p2160(label: '2160p', height: 2160, maxBitrateKbps: 8000);
 
   const ClarityLevel({
     required this.label,
@@ -45,7 +48,8 @@ enum ClarityLevel {
     if (height <= 360) return ClarityLevel.p360;
     if (height <= 540) return ClarityLevel.p540;
     if (height <= 720) return ClarityLevel.p720;
-    return ClarityLevel.p1080;
+    if (height <= 1080) return ClarityLevel.p1080;
+    return ClarityLevel.p2160;
   }
 }
 

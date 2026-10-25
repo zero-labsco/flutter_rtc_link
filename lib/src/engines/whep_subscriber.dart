@@ -245,6 +245,7 @@ class WhepSubscriber extends RemoteSubscriber {
       case ClarityLevel.p720:
         suffixes.add('hd');
       case ClarityLevel.p1080:
+      case ClarityLevel.p2160:
         suffixes.addAll(<String>['fhd', 'hd']);
     }
     return suffixes

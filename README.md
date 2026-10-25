@@ -18,7 +18,7 @@ Real-time audio/video (WebRTC) and IoT device management in one Flutter plugin: 
 [![Style: effective dart](https://img.shields.io/badge/style-effective_dart-40c4ff.svg)](https://pub.dev/packages/effective_dart)
 [![Docs](https://img.shields.io/badge/docs-GitHub%20Pages-4cc38a.svg)](https://zero-labsco.github.io/flutter_rtc_link/)
 
-> **🔔 Upgrade recommended:** `0.1.3` adds a local-preview API (`LocalPublisher.cameraStream`) and raises the `permission_handler` constraint (Android `compileSdk 35`, still compatible with the default Flutter template's 36). All users should upgrade to the latest version (`^0.1.3`).
+> **🔔 Upgrade recommended:** `0.2.0` adds **4K (2160p) publish support** — new `ClarityLevel.p2160`, LiveKit `h2160_169` capture/simulcast preset, WHIP/WHEP auto-derive 3840×2160 from the height, plus the clarity selector UI in the example — and fixes a stats bug where the video/audio bitrate could be reported as a negative value after an ICE restart / network handover. All users should upgrade to the latest version (`^0.2.0`).
 
 🌐 **[Documentation](https://zero-labsco.github.io/flutter_rtc_link/)** &nbsp;·&nbsp; 📦 **[View on pub.dev](https://pub.dev/packages/flutter_rtc_link)** &nbsp;·&nbsp; 🔗 **[View on GitHub](https://github.com/zero-labsco/flutter_rtc_link)**
 
@@ -68,7 +68,7 @@ Real-time audio/video (WebRTC) and IoT device management in one Flutter plugin: 
 
 ```yaml
 dependencies:
-  flutter_rtc_link: ^0.1.3
+  flutter_rtc_link: ^0.2.0
 ```
 
 ### GitHub
@@ -78,7 +78,7 @@ dependencies:
   flutter_rtc_link:
     git:
       url: https://github.com/zero-labsco/flutter_rtc_link.git
-      ref: release/v0.1.3   # replace with the version you need
+      ref: release/v0.2.0   # replace with the version you need
 ```
 
 ### Platform Setup

@@ -105,6 +105,10 @@ class RtcControlBar extends StatelessWidget {
                     value: ClarityLevel.p1080,
                     child: Text('1080p'),
                   ),
+                  PopupMenuItem<ClarityLevel>(
+                    value: ClarityLevel.p2160,
+                    child: Text('2160p'),
+                  ),
                 ],
               ),
             if (onLeave != null)

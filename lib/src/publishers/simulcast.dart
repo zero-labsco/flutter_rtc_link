@@ -18,6 +18,7 @@ const Map<ClarityLevel, int> kFullLayerBitrate = <ClarityLevel, int>{
   ClarityLevel.p540: 800 * 1000,
   ClarityLevel.p720: 1700 * 1000,
   ClarityLevel.p1080: 3000 * 1000,
+  ClarityLevel.p2160: 8000 * 1000,
 };
 
 /// Whether a simulcast layer is active for the given publish cap.
@@ -37,6 +38,7 @@ bool isSimulcastLayerActive(String rid, ClarityLevel maxLevel) {
       return rid == kRidQuarter || rid == kRidHalf;
     case ClarityLevel.p720:
     case ClarityLevel.p1080:
+    case ClarityLevel.p2160:
       return true;
   }
 }

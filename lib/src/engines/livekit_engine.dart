@@ -94,6 +94,8 @@ lk.VideoParameters capturePresetFor(ClarityLevel level) {
     case ClarityLevel.auto:
     case ClarityLevel.p1080:
       return lk.VideoParametersPresets.h1080_169;
+    case ClarityLevel.p2160:
+      return lk.VideoParametersPresets.h2160_169;
     case ClarityLevel.p720:
       return lk.VideoParametersPresets.h720_169;
     case ClarityLevel.p540:
@@ -113,6 +115,13 @@ List<lk.VideoParameters> simulcastLayersFor(ClarityLevel level) {
         lk.VideoParametersPresets.h180_169,
         lk.VideoParametersPresets.h540_169,
         lk.VideoParametersPresets.h1080_169,
+      ];
+    case ClarityLevel.p2160:
+      return <lk.VideoParameters>[
+        lk.VideoParametersPresets.h180_169,
+        lk.VideoParametersPresets.h540_169,
+        lk.VideoParametersPresets.h1080_169,
+        lk.VideoParametersPresets.h2160_169,
       ];
     case ClarityLevel.p720:
       return <lk.VideoParameters>[

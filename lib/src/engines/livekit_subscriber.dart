@@ -68,6 +68,7 @@ class LiveKitSubscriber extends RemoteSubscriber {
     switch (level) {
       case ClarityLevel.auto:
       case ClarityLevel.p1080:
+      case ClarityLevel.p2160:
         // auto = "up to high"; adaptiveStream decides the actual layer.
         // auto = "最高到 high"；实际层级由 adaptiveStream 决定。
         return lk.VideoQuality.HIGH;

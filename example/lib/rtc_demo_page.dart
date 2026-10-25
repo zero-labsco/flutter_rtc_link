@@ -142,6 +142,7 @@ class _RtcDemoPageState extends State<RtcDemoPage> {
                         ClarityLevel.p540,
                         ClarityLevel.p720,
                         ClarityLevel.p1080,
+                        ClarityLevel.p2160,
                       ])
                         ActionChip(
                           label: Text(level.label),

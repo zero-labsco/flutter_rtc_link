@@ -18,7 +18,7 @@
 [![Style: effective dart](https://img.shields.io/badge/style-effective_dart-40c4ff.svg)](https://pub.dev/packages/effective_dart)
 [![Docs](https://img.shields.io/badge/docs-GitHub%20Pages-4cc38a.svg)](https://zero-labsco.github.io/flutter_rtc_link/)
 
-> **🔔 推荐升级：** `0.1.3` 新增本地预览 API（`LocalPublisher.cameraStream`），并将 `permission_handler` 约束升级（Android `compileSdk 35`，仍与默认 Flutter 模板的 36 兼容）。建议所有用户升级到最新版本（`^0.1.3`）。
+> **🔔 推荐升级：** `0.2.0` 新增 **4K（2160p）发布支持**——新增 `ClarityLevel.p2160`、LiveKit `h2160_169` 采集 / simulcast 预设、WHIP/WHEP 由高度自动推导 3840×2160，以及示例里的清晰度选择器 UI；同时修复了一个 stats 缺陷——ICE 重启 / 网络切换后视频与音频码率可能被上报为负值。建议所有用户升级到最新版本（`^0.2.0`）。
 
 🌐 **[文档站](https://zero-labsco.github.io/flutter_rtc_link/)** &nbsp;·&nbsp; 📦 **[在 pub.dev 查看](https://pub.dev/packages/flutter_rtc_link)** &nbsp;·&nbsp; 🔗 **[查看 GitHub 仓库](https://github.com/zero-labsco/flutter_rtc_link)**
 
@@ -83,7 +83,7 @@
 
 ```yaml
 dependencies:
-  flutter_rtc_link: ^0.1.3
+  flutter_rtc_link: ^0.2.0
 ```
 
 ### 从 GitHub 安装
@@ -93,7 +93,7 @@ dependencies:
   flutter_rtc_link:
     git:
       url: https://github.com/zero-labsco/flutter_rtc_link.git
-      ref: release/v0.1.3   # 把 0.1.3 换成你需要的版本
+      ref: release/v0.2.0   # 把 0.2.0 换成你需要的版本
 ```
 
 ### 平台配置
