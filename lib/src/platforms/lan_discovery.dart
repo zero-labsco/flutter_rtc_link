@@ -79,8 +79,14 @@ class LanDiscovery {
   }) {
     Discovery? discovery;
     void Function(Service, ServiceStatus)? listener;
+    // Set when the subscriber leaves before startDiscovery() has returned: the
+    // onCancel callback below cannot stop a discovery it has not seen yet. /
+    // 订阅者在 startDiscovery() 返回之前离开时置位：下面的 onCancel 无法停止一个
+    // 它还没拿到的 discovery。
+    var cancelled = false;
     final controller = StreamController<LanService>(
       onCancel: () async {
+        cancelled = true;
         if (discovery != null && listener != null) {
           discovery!.removeServiceListener(listener!);
         }
@@ -88,26 +94,46 @@ class LanDiscovery {
       },
     );
     () async {
-      final started = await startDiscovery(
-        serviceType,
-        autoResolve: true,
-        ipLookupType: ipLookupType,
-      );
-      listener = (service, status) {
-        if (status != ServiceStatus.found || controller.isClosed) return;
-        controller.add(
-          LanService(
-            name: service.name,
-            host: service.host,
-            port: service.port,
-            addresses:
-                service.addresses?.map((address) => address.address).toList() ??
-                const <String>[],
-          ),
+      try {
+        final started = await startDiscovery(
+          serviceType,
+          autoResolve: true,
+          ipLookupType: ipLookupType,
         );
-      };
-      started.addServiceListener(listener!);
-      discovery = started;
+        // Cancelled while we were starting: stop it now, otherwise this
+        // discovery is never stopped. / 启动期间被取消：立即停止，否则该
+        // discovery 永远不会停止。
+        if (cancelled) {
+          await stopDiscovery(started);
+          return;
+        }
+        listener = (service, status) {
+          if (status != ServiceStatus.found || controller.isClosed) return;
+          controller.add(
+            LanService(
+              name: service.name,
+              host: service.host,
+              port: service.port,
+              addresses:
+                  service.addresses
+                      ?.map((address) => address.address)
+                      .toList() ??
+                  const <String>[],
+            ),
+          );
+        };
+        started.addServiceListener(listener!);
+        discovery = started;
+      } catch (e, s) {
+        // Surface the failure instead of losing it inside this fire-and-forget
+        // future, which also left subscribers hanging forever. /
+        // 上报失败，而不是让它在 fire-and-forget 的 future 中丢失——那还会让订阅者
+        // 永久挂起。
+        if (!controller.isClosed) {
+          controller.addError(e, s);
+          await controller.close();
+        }
+      }
     }();
     return controller.stream;
   }

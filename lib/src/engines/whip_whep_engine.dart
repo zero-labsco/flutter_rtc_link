@@ -58,6 +58,11 @@ class WhipWhepEngine extends RtcEngine {
       identity: identity ?? _identity,
       logger: _logger,
     );
+    // Drop sessions that are already disposed: the list is otherwise
+    // append-only and keeps growing with every reconnect until the engine
+    // itself is disposed. / 移除已释放的会话：否则该列表只增不减，会随每次重连
+    // 持续增长，直到引擎本身被释放。
+    _sessions.removeWhere((s) => s.isDisposed);
     _sessions.add(session);
     return session;
   }
@@ -159,7 +164,16 @@ class WhipWhepSession extends RtcSession implements IceRestartable {
       quality: quality,
       logger: _logger,
     );
-    await subscriber.start();
+    try {
+      await subscriber.start();
+    } catch (e) {
+      // start() has already built a peer connection and a WHEP resource; the
+      // subscriber is not in _subscribers yet, so without this they leak. /
+      // start() 已经建立了 peer connection 与 WHEP 资源，而 subscriber 尚未加入
+      // _subscribers，不清理就会泄漏。
+      await subscriber.dispose();
+      rethrow;
+    }
     _subscribers[streamId] = subscriber;
     _publishRemoteStreams();
     _eventsCtrl.add(
@@ -203,9 +217,19 @@ class WhipWhepSession extends RtcSession implements IceRestartable {
     _role.dispose();
   }
 
+  /// Whether this session has already been left / disposed. /
+  /// 本会话是否已经离开 / 释放。
+  bool get isDisposed => _disposed;
+
   /// Emits an event on the session stream. / 向会话事件流发送事件。
   @override
-  void emit(RtcEvent event) => _eventsCtrl.add(event);
+  void emit(RtcEvent event) {
+    // A late emit after dispose() must not throw "Cannot add event after
+    // closing". / dispose() 之后的迟到 emit 不得抛出 "Cannot add event after
+    // closing"。
+    if (_eventsCtrl.isClosed) return;
+    _eventsCtrl.add(event);
+  }
 
   /// Emits an error event. / 发送错误事件。
   void emitError(
@@ -318,11 +342,17 @@ class WhipWhepSession extends RtcSession implements IceRestartable {
     final publisher = _publisher;
     if (publisher != null) {
       final video = await publisher.sampleVideoStats();
+      // leave()/dispose() can complete during an await; writing to a closed
+      // controller would throw inside a Timer callback, where nobody can catch
+      // it. / leave()/dispose() 可能在 await 期间完成；向已关闭的控制器写入会在
+      // Timer 回调中抛异常，且无人能捕获。
+      if (_disposed) return;
       if (video != null) {
         _statsCtrl.add(video);
         _eventsCtrl.add(RtcStatsUpdated(stats: video));
       }
       final audio = await publisher.sampleAudioStats();
+      if (_disposed) return;
       if (audio != null) {
         _statsCtrl.add(audio);
         _eventsCtrl.add(RtcStatsUpdated(stats: audio));
@@ -330,6 +360,7 @@ class WhipWhepSession extends RtcSession implements IceRestartable {
     }
     for (final subscriber in _subscribers.values.toList()) {
       final video = await subscriber.sampleVideoStats();
+      if (_disposed) return;
       if (video != null) {
         _statsCtrl.add(video);
         _eventsCtrl.add(RtcStatsUpdated(stats: video));

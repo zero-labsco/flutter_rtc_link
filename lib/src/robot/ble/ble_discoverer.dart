@@ -26,21 +26,31 @@ class BleTeleopDiscoverer {
 
   Future<List<BleDevice>> scan() async {
     final found = <String, BleDevice>{};
-    final subscription = FlutterBluePlus.scanResults.listen((results) {
-      for (final result in results) {
-        final id = result.device.remoteId.str;
-        found[id] = BleDevice(
-          id: id,
-          name: result.advertisementData.advName,
-          rssi: result.rssi,
-        );
-      }
-    });
+    final subscription = FlutterBluePlus.scanResults.listen(
+      (results) {
+        for (final result in results) {
+          final id = result.device.remoteId.str;
+          found[id] = BleDevice(
+            id: id,
+            name: result.advertisementData.advName,
+            rssi: result.rssi,
+          );
+        }
+      },
+      // Scan failures (Bluetooth off, missing permission) arrive as errors on
+      // this stream. / 扫描失败（蓝牙关闭、缺少权限）会以错误形式到达此流。
+      onError: (Object _) {},
+    );
     try {
       await FlutterBluePlus.startScan(
         withServices: <Guid>[Guid(serviceUuid)],
         timeout: timeout,
       );
+      // `scanResults` replays the previous scan synchronously when you listen,
+      // so drop whatever it produced before this scan actually started. /
+      // scanResults 在 listen 时会同步回放上一次扫描结果，因此丢弃本次扫描真正
+      // 开始之前产生的条目。
+      found.clear();
       await Future<void>.delayed(timeout + const Duration(milliseconds: 300));
     } finally {
       await FlutterBluePlus.stopScan();

@@ -240,6 +240,11 @@ class RobotController {
   Future<void> dispose() async {
     _disposed = true;
     await disconnect();
+    // Fully release the channel: a BLE link keeps an auto-reconnect timer and
+    // broadcast controllers alive after a plain disconnect(). /
+    // 彻底释放通道：BLE 链路在普通 disconnect() 后仍保留自动重连定时器与广播
+    // 控制器。
+    await _channel.dispose();
     await _eventsCtrl.close();
   }
 

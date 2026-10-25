@@ -130,13 +130,21 @@ class FileLogCache implements LogCache {
       rest.isEmpty ? '' : '${rest.join('\n')}\n',
       flush: true,
     );
-    return taken
-        .map(
-          (line) =>
-              DeviceLogEntry.fromJson(jsonDecode(line) as Map<String, dynamic>),
-        )
-        .whereType<DeviceLogEntry>()
-        .toList();
+    // Skip corrupt lines: a crash mid-write leaves a partial line, and one bad
+    // line must not make the whole cache unreadable. /
+    // 跳过损坏行：写入中途崩溃会留下半行，一行坏不能让整个缓存不可用。
+    final entries = <DeviceLogEntry>[];
+    for (final line in taken) {
+      try {
+        final entry = DeviceLogEntry.fromJson(
+          jsonDecode(line) as Map<String, dynamic>,
+        );
+        if (entry != null) entries.add(entry);
+      } catch (_) {
+        continue;
+      }
+    }
+    return entries;
   }
 
   @override
@@ -147,13 +155,19 @@ class FileLogCache implements LogCache {
     final last = lines.length <= max
         ? lines
         : lines.sublist(lines.length - max);
-    return last
-        .map(
-          (line) =>
-              DeviceLogEntry.fromJson(jsonDecode(line) as Map<String, dynamic>),
-        )
-        .whereType<DeviceLogEntry>()
-        .toList();
+    // Same corruption guard as take(). / 与 take() 相同的损坏行保护。
+    final entries = <DeviceLogEntry>[];
+    for (final line in last) {
+      try {
+        final entry = DeviceLogEntry.fromJson(
+          jsonDecode(line) as Map<String, dynamic>,
+        );
+        if (entry != null) entries.add(entry);
+      } catch (_) {
+        continue;
+      }
+    }
+    return entries;
   }
 
   @override
@@ -219,6 +233,17 @@ class MqttLogUploader implements LogUploader {
         existing.connectionStatus?.state == MqttConnectionState.connected) {
       return existing;
     }
+    // Drop the previous client before replacing it: mqtt_client keeps its
+    // socket and broker session alive otherwise. /
+    // 替换前先丢弃旧 client：否则 mqtt_client 会保留其 socket 与 broker 会话。
+    if (existing != null) {
+      try {
+        existing.disconnect();
+      } catch (_) {
+        // Best effort. / 尽力而为。
+      }
+      _client = null;
+    }
     final uri = Uri.parse(broker);
     final client = MqttServerClient(
       uri.host,
@@ -234,6 +259,14 @@ class MqttLogUploader implements LogUploader {
     try {
       await client.connect(creds?.username, creds?.password);
     } catch (_) {
+      client.disconnect();
+      return null;
+    }
+    // connect() reports failures through connectionStatus instead of throwing,
+    // so an unchecked client would silently swallow every log batch while
+    // still reporting success. / connect() 通过 connectionStatus 而非抛异常来
+    // 报告失败，因此不检查会让每批日志被静默吞掉却仍上报成功。
+    if (client.connectionStatus?.state != MqttConnectionState.connected) {
       client.disconnect();
       return null;
     }
@@ -312,6 +345,7 @@ class DeviceLogCollector {
   final List<DeviceLogEntry> _buffer = <DeviceLogEntry>[];
   Timer? _flushTimer;
   String? _activeDeviceId;
+  bool _flushing = false;
   LogLevel _level = LogLevel.debug;
 
   /// Device events (batch uploads). / 设备事件（批量上传）。
@@ -357,23 +391,48 @@ class DeviceLogCollector {
   /// 刷写缓冲条目：先上传，失败则入缓存。
   Future<void> flush() async {
     if (_buffer.isEmpty) return;
-    final deviceId = _activeDeviceId ?? _deviceId ?? 'unknown';
-    final batch = _buffer.take(maxBatchSize).toList();
-    _buffer.removeRange(0, batch.length);
-    var uploaded = false;
-    final uploader = _uploader;
-    if (uploader != null) {
-      uploaded = await uploader.upload(deviceId, batch);
+    // Guard against re-entrancy: a timer-triggered flush can enter while an
+    // upload is already in flight, and both would then take (and later
+    // re-append) the same cached batch. /
+    // 防止重入：定时器触发的 flush 会在上传进行中进入，两者会取到（并稍后重复
+    // 回写）同一批缓存。
+    if (_flushing) return;
+    _flushing = true;
+    try {
+      final deviceId = _activeDeviceId ?? _deviceId ?? 'unknown';
+      final batch = _buffer.take(maxBatchSize).toList();
+      _buffer.removeRange(0, batch.length);
+      var uploaded = false;
+      final uploader = _uploader;
+      if (uploader != null) {
+        uploaded = await uploader.upload(deviceId, batch);
+      }
+      if (!uploaded) {
+        final cache = _cache;
+        if (cache == null) {
+          // Without a cache the batch really is lost — do not claim it was
+          // cached. / 没有缓存时这批日志确实丢了——不能谎称已缓存。
+          _logger.warning(
+            'log upload failed and no cache is configured; '
+            '${batch.length} entries dropped',
+          );
+          return;
+        }
+        // Weak network: keep locally and re-send on the next flush.
+        // 弱网：本地留存，下次 flush 补传。
+        _logger.info(
+          'log upload failed; ${batch.length} entries cached locally',
+        );
+        await cache.append(batch);
+        return;
+      }
+      _eventsCtrl.add(
+        LogBatchUploaded(deviceId: deviceId, count: batch.length),
+      );
+      await _flushCached(deviceId);
+    } finally {
+      _flushing = false;
     }
-    if (!uploaded) {
-      // Weak network: keep locally and re-send on the next flush.
-      // 弱网：本地留存，下次 flush 补传。
-      _logger.info('log upload failed; ${batch.length} entries cached locally');
-      await _cache?.append(batch);
-      return;
-    }
-    _eventsCtrl.add(LogBatchUploaded(deviceId: deviceId, count: batch.length));
-    await _flushCached(deviceId);
   }
 
   /// Packages the last [lastN] entries as a crash bundle.

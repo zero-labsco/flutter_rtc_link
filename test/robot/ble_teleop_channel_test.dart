@@ -48,6 +48,13 @@ class FakeBleLink implements BleLink {
 
   @override
   bool get isConnected => connected;
+
+  @override
+  Future<void> dispose() async {
+    connected = false;
+    if (!_telemetryCtrl.isClosed) await _telemetryCtrl.close();
+    if (!_stateCtrl.isClosed) await _stateCtrl.close();
+  }
 }
 
 void main() {

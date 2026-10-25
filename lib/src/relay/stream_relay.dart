@@ -78,6 +78,10 @@ class LiveKitEgressClient {
   final LiveKitEgressConfig _config;
   final http.Client _client;
 
+  /// Releases the underlying HTTP client (and its connection pool). /
+  /// 释放底层 HTTP 客户端（及其连接池）。
+  void close() => _client.close();
+
   /// Starts a room-composite Egress pushing to [rtmpUrls]. / 启动房间合流 Egress，推送到 [rtmpUrls]。
   Future<String> startRoomCompositeRtmp({
     required String roomName,
@@ -208,6 +212,9 @@ class StreamRelay {
         try {
           await client.stopEgress(egressId);
         } finally {
+          // Release the HTTP client first, so it is closed even if emit()
+          // throws. / 先释放 HTTP 客户端，即使 emit() 抛异常也能关闭。
+          client.close();
           session.emit(RtcRelayStopped(target: rtmpUrl, kind: 'rtmp'));
         }
       },
@@ -282,12 +289,17 @@ class StreamRelay {
     for (final handle in handles) {
       try {
         await handle.stop();
-      } on RtcException catch (e) {
+      } catch (e) {
+        // Catch everything, not just RtcException: any other error (e.g. a
+        // StateError from a disposed session) used to abort the loop, leaving
+        // the remaining handles running and skipping removeAll(). /
+        // 捕获所有异常而非仅 RtcException：其它错误（例如会话已释放导致的
+        // StateError）过去会中断循环，使其余 handle 继续运行并跳过 removeAll()。
         session.emit(
           RtcRelayFailed(
             target: handle.target,
             kind: kind.name,
-            error: e.message,
+            error: e.toString(),
           ),
         );
       }

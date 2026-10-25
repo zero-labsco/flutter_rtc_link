@@ -293,6 +293,15 @@ class ResilientSession implements RtcSession {
     await _pathSub?.cancel();
     _pathSub = null;
     await _detachSession();
+    // Reset the recovery bookkeeping: a later manual connect() must start from a
+    // full budget and a clean media-health state, otherwise it inherits an
+    // almost-exhausted retry counter and stale frozen-stream flags. /
+    // 重置恢复记账：之后的手动 connect() 必须从完整预算与干净的媒体健康状态开始，
+    // 否则会继承一个几乎耗尽的重试计数与过期的冻结流标记。
+    _supervisor.reset();
+    _recovering = false;
+    _mediaHealth.reset();
+    _lastRecoveryAt.clear();
     _setPhase(LinkPhase.idle);
   }
 
@@ -343,7 +352,13 @@ class ResilientSession implements RtcSession {
     if (reason == PauseReason.background && _policy.background.pauseVideo) {
       await _session?.localPublisher?.setVideoEnabled(false);
     }
-    if (_policy.background.stopRobot && _config.onStopRobot != null) {
+    // stopRobot means "halt when the operator leaves the foreground". Firing it
+    // for connectionLost / networkLost / engineError too makes a brief Wi-Fi
+    // blip stop the robot. / stopRobot 的语义是"操作员离开前台时停车"。若对断线 /
+    // 弱网 / 引擎错误也触发，一次短暂的 Wi-Fi 抖动就会让机器人停车。
+    if (reason == PauseReason.background &&
+        _policy.background.stopRobot &&
+        _config.onStopRobot != null) {
       await _config.onStopRobot!();
     }
     if (_health.phase == LinkPhase.connected ||
@@ -367,11 +382,18 @@ class ResilientSession implements RtcSession {
     final ok = _gate.confirmResume(target);
     if (ok) {
       await _session?.localPublisher?.setVideoEnabled(true);
-      _setPhase(
-        _quality == ConnectionQualityLevel.poor
-            ? LinkPhase.degraded
-            : LinkPhase.connected,
-      );
+      // Only claim "connected" when a session really exists: the gate can be
+      // resumed while a reconnect is still pending, and reporting connected
+      // with no session makes subscribe() throw. /
+      // 只有确实存在会话时才声称"已连接"：重连未完成时门也可能被恢复，此时上报
+      // 已连接会让 subscribe() 抛异常。
+      if (_session != null) {
+        _setPhase(
+          _quality == ConnectionQualityLevel.poor
+              ? LinkPhase.degraded
+              : LinkPhase.connected,
+        );
+      }
     }
     return ok;
   }
@@ -475,7 +497,16 @@ class ResilientSession implements RtcSession {
                   '${_policy.connectTimeout.inSeconds}s.',
             ),
           );
+      // dispose() may have completed while the factory future was pending:
+      // bail out so we neither touch released controllers nor leak the fresh
+      // session. / dispose() 可能在 factory 的 future 挂起期间完成：必须退出，
+      // 既不触碰已释放的控制器，也不泄漏新建的会话。
+      if (_disposed) {
+        await session.dispose();
+        return;
+      }
       await _attach(session);
+      if (_disposed) return;
       _supervisor.recordSuccess();
       _recovering = false;
       _setPhase(LinkPhase.connected);
@@ -504,7 +535,25 @@ class ResilientSession implements RtcSession {
     }
   }
 
+  bool _attaching = false;
+
   Future<void> _attach(RtcSession session) async {
+    // Serialise attaches: two overlapping attaches cancel each other's
+    // subscriptions and orphan one session. /
+    // 串行化 attach：两个重叠的 attach 会互相取消订阅并遗弃一个会话。
+    if (_attaching) {
+      await session.dispose();
+      return;
+    }
+    _attaching = true;
+    try {
+      await _attachInner(session);
+    } finally {
+      _attaching = false;
+    }
+  }
+
+  Future<void> _attachInner(RtcSession session) async {
     await _detachSession();
     _session = session;
     _eventsSub = session.events.listen(
@@ -538,7 +587,15 @@ class ResilientSession implements RtcSession {
     final session = _session;
     _session = null;
     if (session != null) {
+      // leave() first — it is the protocol-level teardown the server (and the
+      // tests) observe — then dispose(). leave() alone only stops the stats
+      // loop and leaves the broadcast controllers plus the engine's session
+      // entry alive, leaking a whole session on every reconnect. /
+      // 先 leave()——它是服务端（与测试）观察到的协议层离开动作——再 dispose()。
+      // 只调 leave() 仅停止 stats 循环，广播控制器与引擎的会话条目仍存活，
+      // 每次重连都会泄漏一整个会话。
       await session.leave();
+      await session.dispose();
     }
   }
 
@@ -647,6 +704,11 @@ class ResilientSession implements RtcSession {
     }
     _emit(const RtcReconnected());
     if (_config.autoResumeAfterReconnect && _gate.isPaused) {
+      // pause() disabled the local camera when the app went to the background.
+      // Resuming the gate without re-enabling it leaves the video permanently
+      // black. / 进入后台时 pause() 关闭了本地摄像头；恢复门却不重新开启会让
+      // 视频永久黑屏。
+      await _session?.localPublisher?.setVideoEnabled(true);
       if (_policy.background.requireResumeConfirmation) {
         _gate.requestResume();
       } else {
@@ -671,9 +733,30 @@ class ResilientSession implements RtcSession {
     _updateHealth();
   }
 
+  /// Minimum gap between two automatic recovery actions for one stream. /
+  /// 同一路流两次自动恢复动作之间的最小间隔。
+  static const Duration _recoveryCooldown = Duration(seconds: 10);
+
+  /// When the last automatic recovery action fired, per stream. /
+  /// 每路流上次触发自动恢复动作的时间。
+  final Map<String, DateTime> _lastRecoveryAt = <String, DateTime>{};
+
   void _onMediaHealth(MediaHealth health) {
     _emitLink(LinkMediaHealthChanged(health: health));
-    switch (health.action) {
+    // Recovery actions must be rate-limited: stats arrive roughly every 2s, so
+    // an unchanged "frozen" verdict used to request a keyframe (or resubscribe)
+    // on every single sample. / 恢复动作必须限流：stats 约每 2s 到达一次，若不
+    // 限流，同一个"冻结"判定会在每个样本上都请求关键帧（或重订阅）。
+    final action = health.action;
+    if (action != MediaRecoveryAction.none) {
+      final now = DateTime.now();
+      final last = _lastRecoveryAt[health.streamId];
+      if (last != null && now.difference(last) < _recoveryCooldown) {
+        return;
+      }
+      _lastRecoveryAt[health.streamId] = now;
+    }
+    switch (action) {
       case MediaRecoveryAction.requestKeyframe:
         unawaited(
           _config.keyframeRequester?.call(health.streamId) ??

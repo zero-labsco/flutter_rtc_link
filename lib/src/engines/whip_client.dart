@@ -72,6 +72,11 @@ class WhipWhepClient {
 
   final http.Client _client;
 
+  /// Closes the underlying HTTP client. Call it when the client is discarded so
+  /// the connection pool and its sockets are released. /
+  /// 关闭底层 HTTP 客户端。丢弃本客户端时调用，以释放连接池与 socket。
+  void close() => _client.close();
+
   /// Publishes an offer (WHIP). / 推流 offer（WHIP）。
   Future<WhipNegotiationResult> publish(String sdpOffer, {String? streamId}) =>
       _negotiate(whipUrl, sdpOffer, streamId, isPlayback: false);
@@ -120,9 +125,16 @@ class WhipWhepClient {
             'Location header.',
       );
     }
+    // RFC 9725 allows a relative Location. Resolve it against the endpoint:
+    // http.Request needs an absolute URI, and a relative one made DELETE (and
+    // the trickle PATCH) fail, so the server-side resource was never released.
+    // / RFC 9725 允许相对 Location。需基于端点解析成绝对 URI：http.Request 要求
+    // 绝对 URI，相对 URI 会让 DELETE（与 trickle PATCH）失败，导致服务端资源
+    // 永不释放。
+    final resourceUrl = Uri.parse(baseUrl).resolve(location).toString();
     return WhipNegotiationResult(
       resource: WhipResource(
-        resourceUrl: location,
+        resourceUrl: resourceUrl,
         etag: response.headers['etag'],
         isPlayback: isPlayback,
       ),
@@ -140,6 +152,11 @@ class WhipWhepClient {
     request.headers.addAll(headers);
     try {
       final response = await _client.send(request).timeout(timeout);
+      // Drain the body: an unread StreamedResponse never hands the connection
+      // back to the pool, leaking a socket on every call. /
+      // 排空响应体：未读取的 StreamedResponse 不会把连接归还连接池，每次调用都
+      // 泄漏一个 socket。
+      await response.stream.drain<void>();
       if (response.statusCode >= 400) {
         // Deleting an already-gone resource is fine (idempotent teardown).
         // 删除已不存在的资源视为正常（幂等清理）。
@@ -176,7 +193,10 @@ class WhipWhepClient {
     request.headers.addAll(headers);
     request.body = candidate.candidate ?? '';
     try {
-      await _client.send(request).timeout(timeout);
+      final response = await _client.send(request).timeout(timeout);
+      // Drain the body so the connection returns to the pool. /
+      // 排空响应体使连接归还连接池。
+      await response.stream.drain<void>();
     } catch (e) {
       // Candidate delivery is best-effort; ICE keeps working via the SDP.
       // candidate 投递为尽力而为；ICE 仍可通过 SDP 正常工作。

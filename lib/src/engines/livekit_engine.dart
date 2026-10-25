@@ -289,7 +289,14 @@ class LiveKitSession extends RtcSession {
 
   /// Emits an event on the session stream. / 向会话事件流发送事件。
   @override
-  void emit(RtcEvent event) => _eventsCtrl.add(event);
+  void emit(RtcEvent event) {
+    // A late emit after dispose() (e.g. a permission callback that resolves
+    // seconds later) must not throw "Cannot add event after closing". /
+    // dispose() 之后的迟到 emit（例如数秒后才返回的权限回调）不得抛出
+    // "Cannot add event after closing"。
+    if (_eventsCtrl.isClosed) return;
+    _eventsCtrl.add(event);
+  }
 
   void _bindRoomEvents() {
     _listener
