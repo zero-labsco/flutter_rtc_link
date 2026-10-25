@@ -206,11 +206,25 @@ Notes / 说明:
 ### Definition of done / 完成标准
 
 ```bash
-dart format lib test example/lib tool
+dart format .
 powershell -File tool/normalize-eol.ps1
 flutter analyze lib test example/lib   # must be: No issues found!
 flutter test                           # must be: All tests passed!
 ```
+
+`dart format .` — not `dart format lib` — is the command: CI and the local
+environment must run the same scope with the same toolchain (Flutter 3.47.5 /
+Dart 3.13.4, see `.github/workflows/ci.yml`). A narrower command leaves
+`test/` and `example/` unformatted, and CI then reports files that look clean
+locally.
+/ 命令必须是 `dart format .` 而非 `dart format lib`：CI 与本地必须跑相同范围、
+相同工具链（Flutter 3.47.5 / Dart 3.13.4，见 `.github/workflows/ci.yml`）。
+范围写窄会漏掉 `test/` 与 `example/`，于是 CI 会报出本地看着干净的文件。
+
+CI formats the tree itself and only warns when it was not clean, so a PR never
+turns red for style alone — but keep the branch clean locally anyway.
+/ CI 会自行格式化工作树，仅在原本不规范时告警，因此 PR 不会仅因风格变红——但仍
+请在本地保持分支干净。
 
 ### Releasing / 发版
 

@@ -1,14 +1,16 @@
 name: Dart Format Auto-Fix
 
-# Automatically run `dart format` on PRs and push fixes back when the code is
-# not properly formatted. This keeps style consistent without reviewer nudging.
+# Manual-only: run from the Actions tab to format a branch and push the result.
+# 仅手动：在 Actions 页手动运行，格式化某分支并推送结果。
+#
+# The `pull_request` trigger was REMOVED on purpose: committing back to the PR
+# branch raced with CI — the bot's push started another run (which could sit in
+# `action_required`), and the branch history filled with bot commits. CI now
+# formats the tree itself and only warns, so a PR never turns red for style.
+# 有意移除了 `pull_request` 触发：向 PR 分支回推提交会与 CI 竞态——bot 的推送会
+# 再起一轮 run（可能停在 `action_required`），且分支历史里塞满 bot 提交。现在由
+# CI 自己格式化并仅告警，PR 不会因格式变红。
 on:
-  pull_request:
-    types:
-      - opened
-      - synchronize
-      - reopened
-  # Allow manual runs from the Actions tab (formats the default branch).
   workflow_dispatch:
 
 permissions:

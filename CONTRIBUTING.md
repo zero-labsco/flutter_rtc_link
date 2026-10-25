@@ -110,13 +110,14 @@ class LocalPublisher {
 Run before committing:
 
 ```bash
-dart format lib/
-dart format example/lib/
+# Same scope and toolchain as CI (Flutter 3.47.5 / Dart 3.13.4).
+# 与 CI 相同的范围与工具链（Flutter 3.47.5 / Dart 3.13.4）。
+dart format .
 ```
 
-CI uses `dart format --set-exit-if-changed` to enforce formatting. **All text files in this repository use LF line endings** (enforced by `.gitattributes`); never commit CRLF.
+Format the whole repository, not just `lib/` — `dart format lib/` leaves `test/` and `example/` untouched, and CI then reports files that look clean locally. CI formats the tree itself and only warns when it was not clean, so a PR never fails for style alone. **All text files in this repository use LF line endings** (enforced by `.gitattributes`); never commit CRLF.
 
-> 提交前运行 `dart format` 格式化。CI 使用 `--set-exit-if-changed` 强制检查。**本仓库所有文本文件统一使用 LF 换行**（由 `.gitattributes` 强制），严禁提交 CRLF。
+> 请格式化整个仓库而非只格式化 `lib/`——`dart format lib/` 不会动 `test/` 与 `example/`，CI 随后会报出本地看着干净的文件。CI 会自行格式化工作树，仅在原本不规范时告警，因此 PR 不会仅因风格失败。**本仓库所有文本文件统一使用 LF 换行**（由 `.gitattributes` 强制），严禁提交 CRLF。
 
 ### Analysis
 
