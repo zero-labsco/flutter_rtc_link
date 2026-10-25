@@ -91,3 +91,16 @@ final selection = ControlLinkRouter(rttBudgetMs: 200).select(paths);
 
 路由器还会报告所选路径是否在 `rttBudgetMs` 预算内，让 UI 在操作员开动之前就给出
 提示。
+
+若机器人侧**完全不走网络**，可用 `BleTeleopChannel.forDevice(device)`——第四个
+`TeleopChannel`，走持久的 BLE GATT 链路（用 `BleTeleopDiscoverer` 扫描）。它也能作为
+`DualTeleopChannel` 的 `secondary`，即使网络断了，停车指令仍能源达机器人：
+
+```dart
+final channel = DualTeleopChannel(
+  primary: DataChannelTeleopChannel(...),   // 或 MqttTeleopChannel
+  secondary: BleTeleopChannel.forDevice(device),
+);
+```
+
+GATT 契约详见[蓝牙遥测控制](./ble_control)。

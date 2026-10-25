@@ -18,7 +18,7 @@
 [![Style: effective dart](https://img.shields.io/badge/style-effective_dart-40c4ff.svg)](https://pub.dev/packages/effective_dart)
 [![Docs](https://img.shields.io/badge/docs-GitHub%20Pages-4cc38a.svg)](https://zero-labsco.github.io/flutter_rtc_link/)
 
-> **🔔 推荐升级：** `0.2.0` 新增 **4K（2160p）发布支持**——新增 `ClarityLevel.p2160`、LiveKit `h2160_169` 采集 / simulcast 预设、WHIP/WHEP 由高度自动推导 3840×2160，以及示例里的清晰度选择器 UI；同时修复了一个 stats 缺陷——ICE 重启 / 网络切换后视频与音频码率可能被上报为负值。建议所有用户升级到最新版本（`^0.2.0`）。
+> **🔔 推荐升级：** `0.3.0` 新增 **基于 BLE GATT 的持久控制通道**——`BleTeleopChannel` 实现 `TeleopChannel`，可直接接入 `RobotController` / `DualTeleopChannel`（看门狗、epoch 门控与保活逻辑不变），断线自动重连，并配套 `BleTeleopDiscoverer` 扫描器。可用于直连、免网络的远控，或作为网络断链时的兜底。建议所有用户升级到最新版本（`^0.3.0`）。
 
 🌐 **[文档站](https://zero-labsco.github.io/flutter_rtc_link/)** &nbsp;·&nbsp; 📦 **[在 pub.dev 查看](https://pub.dev/packages/flutter_rtc_link)** &nbsp;·&nbsp; 🔗 **[查看 GitHub 仓库](https://github.com/zero-labsco/flutter_rtc_link)**
 
@@ -59,7 +59,13 @@
 - **直播转接** —— `RoleTransfer.promote` / `handover`（身份交接）与
   `StreamRelay.toRtmp` / `cascade`（服务端 Egress 或二次 WHIP 推流）。
 - **机器人远控** —— 摇杆速度、独立通道的 PTZ、遥测、对讲接入，以及指令超时 / 发送
-  被拒 / 断链时 500ms 内自动停车的看门狗。
+  被拒 / 断链时 500ms 内自动停车的看门狗；另提供基于 BLE GATT 的持久控制通道
+  （`BleTeleopChannel`），可直连、免网络远控。
+- **面向任意设备的通用 BLE** —— `BleScanner` 可发现附近任意 BLE 设备，
+  `BleGattClient` 负责连接、发现 GATT 服务并暴露原始的 `read` / `write` /
+  `subscribe`——不做任何机器人或 ESP 契约假设，因此音响 / 传感器 / 外设类项目
+  同样能用上插件的 BLE 能力。基于 `flutter_blue_plus`，依赖树中恰好只有一个
+  蓝牙库。
 - **物联网设备四件套** —— 多通道 `DeviceProvisioning`（BLE → DPP/QR → NFC →
   SoftAP → SmartConfig 自动降级）、`OtaUpdater`、`DeviceLogCollector`（本地缓存 +
   批量补传）与 `Diagnostics`（stats + 网络探测 + 日志 → JSON/Markdown）。
@@ -83,7 +89,7 @@
 
 ```yaml
 dependencies:
-  flutter_rtc_link: ^0.2.0
+  flutter_rtc_link: ^0.3.0
 ```
 
 ### 从 GitHub 安装
@@ -93,7 +99,7 @@ dependencies:
   flutter_rtc_link:
     git:
       url: https://github.com/zero-labsco/flutter_rtc_link.git
-      ref: release/v0.2.0   # 把 0.2.0 换成你需要的版本
+      ref: release/v0.3.0   # 把 0.3.0 换成你需要的版本
 ```
 
 ### 平台配置
@@ -229,6 +235,12 @@ final ticket = robot.requestResume();             // 需操作者确认
 await robot.confirmResume(ticket);
 ```
 
+这里可以使用任意 `TeleopChannel`——`MqttTeleopChannel`（云端 broker）、
+`DataChannelTeleopChannel`（WebRTC，延迟最低），或用新增的
+`BleTeleopChannel.forDevice(device)` 建立持久的 BLE GATT 链路。把两个通道包进
+`DualTeleopChannel(primary, secondary)`，即使网络断了控制仍能存活（例如网络为主、
+BLE 为备）。
+
 ### 设备管理
 
 ```dart
@@ -270,6 +282,7 @@ final results = await RtcPermissions.requestAll(<RtcPermission>{
 | `VideoGridController` | 纯 Dart 的布局与清晰度编排 |
 | `RoleTransfer` / `StreamRelay` | 身份交接与媒体转发 |
 | `RobotController` | `move` / `setPtz` / `stop` / `pause` / `requestResume` / `confirmResume` |
+| `BleTeleopChannel` / `BleTeleopDiscoverer` | 基于 BLE GATT 的持久控制通道与设备扫描 |
 | `ResilientSession` | `connect` / `setBackground` / `confirmResume` / `resubscribe` / `restartIce` |
 | `PauseResumeGate` / `EpochOperationQueue<T>` | epoch 管控与"最新者胜"缓冲 |
 | `RelayPlanner` / `NetworkPathMonitor` / `MediaHealthMonitor` | 中继、切换与弱网检测 |
@@ -285,9 +298,9 @@ final results = await RtcPermissions.requestAll(<RtcPermission>{
 cd example && flutter run
 ```
 
-五个标签页：`link`（推流 / 订阅）、`robot`（摇杆 + 看门狗）、`device`（配网 /
-升级 / 日志）、`diag`（诊断报告）与 `resil`（韧性实验室：暂停恢复确认、切换、
-弱网、退避）。
+六个标签页：`link`（推流 / 订阅）、`robot`（摇杆 + 看门狗）、`device`（配网 /
+升级 / 日志）、`ble`（BLE GATT 远控：扫描 / 连接 / 摇杆）、`diag`（诊断报告）与
+`resil`（韧性实验室：暂停恢复确认、切换、弱网、退避）。
 
 ---
 
@@ -303,7 +316,7 @@ flutter test
 ## 文档
 
 文档站位于 [`website/`](website)（Nextra 3 + Next.js 14）并发布到 GitHub Pages：
-安装、快速开始、推流、订阅、韧性、机器人远控、设备管理与常见问题，每篇都有 `/zh/`
+安装、快速开始、推流、订阅、韧性、蓝牙遥测控制、机器人远控、设备管理与常见问题，每篇都有 `/zh/`
 下的中文版。
 
 ```bash

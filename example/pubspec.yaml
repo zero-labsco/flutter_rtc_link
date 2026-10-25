@@ -2,7 +2,7 @@ name: flutter_rtc_link_example
 description: Example app for the flutter_rtc_link plugin (RTC, robot teleoperation, device management).
 publish_to: none
 
-version: 0.2.0
+version: 0.3.0
 
 environment:
   sdk: ">=3.9.0 <4.0.0"
@@ -16,6 +16,9 @@ dependencies:
   # Used directly by the RTC demo for the local preview renderer.
   # RTC 演示直接用它在本地预览渲染器。
   flutter_webrtc: ^1.6.2+hotfix.4
+  # Used directly by the BLE teleop demo to read the adapter state / turn it on.
+  # BLE 远控演示直接用它读取适配器状态 / 开启蓝牙。
+  flutter_blue_plus: ^2.3.14
 
 dev_dependencies:
   flutter_test:

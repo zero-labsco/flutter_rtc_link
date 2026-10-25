@@ -18,7 +18,7 @@ Real-time audio/video (WebRTC) and IoT device management in one Flutter plugin: 
 [![Style: effective dart](https://img.shields.io/badge/style-effective_dart-40c4ff.svg)](https://pub.dev/packages/effective_dart)
 [![Docs](https://img.shields.io/badge/docs-GitHub%20Pages-4cc38a.svg)](https://zero-labsco.github.io/flutter_rtc_link/)
 
-> **🔔 Upgrade recommended:** `0.2.0` adds **4K (2160p) publish support** — new `ClarityLevel.p2160`, LiveKit `h2160_169` capture/simulcast preset, WHIP/WHEP auto-derive 3840×2160 from the height, plus the clarity selector UI in the example — and fixes a stats bug where the video/audio bitrate could be reported as a negative value after an ICE restart / network handover. All users should upgrade to the latest version (`^0.2.0`).
+> **🔔 Upgrade recommended:** `0.3.0` adds a **persistent BLE GATT teleop control channel** — `BleTeleopChannel` implements `TeleopChannel` and drops straight into `RobotController` / `DualTeleopChannel` (the watchdog, epoch gating and keepalive are unchanged), with auto-reconnect on a drop and a `BleTeleopDiscoverer` scanner. Use it for direct, network-free teleoperation or as a fallback when the network link dies. All users should upgrade to the latest version (`^0.3.0`).
 
 🌐 **[Documentation](https://zero-labsco.github.io/flutter_rtc_link/)** &nbsp;·&nbsp; 📦 **[View on pub.dev](https://pub.dev/packages/flutter_rtc_link)** &nbsp;·&nbsp; 🔗 **[View on GitHub](https://github.com/zero-labsco/flutter_rtc_link)**
 
@@ -51,7 +51,8 @@ Real-time audio/video (WebRTC) and IoT device management in one Flutter plugin: 
 - **Publishing with Simulcast** — `startCamera` / `startMic` / `startScreenShare`, `switchCamera` via `replaceTrack` (zero renegotiation, RFC 9725-friendly), and `setPublishClarity` that only caps the top layer.
 - **Subscribing and Clarity Switching** — WHEP playback, per-stream `setClarity`, pure-Dart `VideoGridController` (speaker / pip / grid layouts, max visible, global clarity), and honest failure when a stream has no variant to switch to.
 - **Live Relay** — `RoleTransfer.promote` / `handover` (identity handover) and `StreamRelay.toRtmp` / `cascade` (server-side Egress or a secondary WHIP push).
-- **Robot Teleoperation** — joystick velocity, PTZ on its own channel, telemetry, intercom hookup, and a 500 ms watchdog that stops the machine on command timeout, refused sends or link loss.
+- **Robot Teleoperation** — joystick velocity, PTZ on its own channel, telemetry, intercom hookup, a 500 ms watchdog (stops on command timeout, refused sends or link loss), and a BLE GATT control channel (`BleTeleopChannel`) for direct, network-free teleoperation.
+- **Generic BLE for Any Device** — `BleScanner` discovers any nearby BLE device and `BleGattClient` connects, discovers GATT services and exposes raw `read` / `write` / `subscribe` — no robot or ESP contract assumed, so speaker / sensor / peripheral projects can use the plugin's BLE stack too. Built on `flutter_blue_plus`, so the dependency tree keeps exactly one Bluetooth library.
 - **IoT Device Suite** — multi-channel `DeviceProvisioning` (BLE → DPP/QR → NFC → SoftAP → SmartConfig, auto-degrading), `OtaUpdater`, `DeviceLogCollector` (local cache + batch re-upload) and `Diagnostics` (stats + network probe + logs → JSON/Markdown).
 - **Resilience for Overseas Links** — supervised connect, jittered backoff reconnect with automatic re-subscription, TURN relay escalation, Wi-Fi ↔ cellular ICE restart, stutter / congestion / frozen-picture recovery.
 - **Pause / Resume Confirmation** — every operation carries an epoch; pausing invalidates it, and resuming is a two-step ticket handshake, so no command captured before an interruption is ever replayed after it.
@@ -68,7 +69,7 @@ Real-time audio/video (WebRTC) and IoT device management in one Flutter plugin: 
 
 ```yaml
 dependencies:
-  flutter_rtc_link: ^0.2.0
+  flutter_rtc_link: ^0.3.0
 ```
 
 ### GitHub
@@ -78,7 +79,7 @@ dependencies:
   flutter_rtc_link:
     git:
       url: https://github.com/zero-labsco/flutter_rtc_link.git
-      ref: release/v0.2.0   # replace with the version you need
+      ref: release/v0.3.0   # replace with the version you need
 ```
 
 ### Platform Setup
@@ -207,6 +208,8 @@ final ticket = robot.requestResume();             // operator must confirm
 await robot.confirmResume(ticket);
 ```
 
+Any `TeleopChannel` works here — `MqttTeleopChannel` (cloud broker), `DataChannelTeleopChannel` (WebRTC, lowest latency), or the new `BleTeleopChannel.forDevice(device)` for a persistent BLE GATT link. Wrap two in `DualTeleopChannel(primary, secondary)` so control still survives a network drop (e.g. network primary, BLE secondary).
+
 ### Devices
 
 ```dart
@@ -248,6 +251,7 @@ final results = await RtcPermissions.requestAll(<RtcPermission>{
 | `VideoGridController` | Pure-Dart layout and clarity orchestration |
 | `RoleTransfer` / `StreamRelay` | Identity handover and media forwarding |
 | `RobotController` | `move` / `setPtz` / `stop` / `pause` / `requestResume` / `confirmResume` |
+| `BleTeleopChannel` / `BleTeleopDiscoverer` | Persistent BLE GATT teleop channel and device scanner |
 | `ResilientSession` | `connect` / `setBackground` / `confirmResume` / `resubscribe` / `restartIce` |
 | `PauseResumeGate` / `EpochOperationQueue<T>` | Epoch discipline and latest-wins buffering |
 | `RelayPlanner` / `NetworkPathMonitor` / `MediaHealthMonitor` | Relay, handover and weak-network detection |
@@ -263,7 +267,7 @@ final results = await RtcPermissions.requestAll(<RtcPermission>{
 cd example && flutter run
 ```
 
-Five tabs: `link` (publish/subscribe), `robot` (joystick + watchdog), `device` (provisioning/OTA/logs), `diag` (diagnostics report) and `resil` (resilience lab: pause/resume confirmation, handover, weak network, backoff).
+Six tabs: `link` (publish/subscribe), `robot` (joystick + watchdog), `device` (provisioning/OTA/logs), `ble` (BLE GATT teleop: scan/connect/joystick), `diag` (diagnostics report) and `resil` (resilience lab: pause/resume confirmation, handover, weak network, backoff).
 
 ---
 
@@ -278,7 +282,7 @@ flutter test
 
 ## Documentation
 
-The documentation site lives in [`website/`](website) (Nextra 3 + Next.js 14) and is published to GitHub Pages: **Installation**, **Quick Start**, **Publishing**, **Subscribing**, **Resilience**, **Robot Teleoperation**, **Devices** and **FAQ** — each with a Chinese counterpart under `/zh/`.
+The documentation site lives in [`website/`](website) (Nextra 3 + Next.js 14) and is published to GitHub Pages: **Installation**, **Quick Start**, **Publishing**, **Subscribing**, **Resilience**, **BLE Teleop Control**, **Robot Teleoperation**, **Devices** and **FAQ** — each with a Chinese counterpart under `/zh/`.
 
 ```bash
 cd website && npm ci && npm run dev

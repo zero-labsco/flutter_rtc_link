@@ -91,9 +91,8 @@ class _DiagnosticsDemoPageState extends State<DiagnosticsDemoPage> {
                 'Android 14+ needs a microphone foreground service to keep '
                 'publishing while backgrounded; iOS needs the host app to '
                 'enable the audio background mode.',
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: scheme.onSurfaceVariant,
-                ),
+                style: Theme.of(context).textTheme.bodyMedium
+                    ?.copyWith(color: scheme.onSurfaceVariant),
               ),
               const SizedBox(height: 10),
               Row(
@@ -141,9 +140,8 @@ class _DiagnosticsDemoPageState extends State<DiagnosticsDemoPage> {
                 child: SingleChildScrollView(
                   child: SelectableText(
                     _report,
-                    style: Theme.of(
-                      context,
-                    ).textTheme.bodyMedium?.copyWith(fontSize: 11, height: 1.5),
+                    style: Theme.of(context).textTheme.bodyMedium
+                        ?.copyWith(fontSize: 11, height: 1.5),
                   ),
                 ),
               ),
@@ -202,8 +200,7 @@ class _DiagnosticsDemoPageState extends State<DiagnosticsDemoPage> {
 
   void _showSnack(String message) {
     if (!mounted) return;
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(message)));
   }
 }
