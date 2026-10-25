@@ -109,8 +109,10 @@ class _DeviceDemoPageState extends State<DeviceDemoPage> {
                   padding: const EdgeInsets.only(top: 4),
                   child: Text(
                     '${_status.reason.name} · ${_status.message ?? ''}',
-                    style: Theme.of(context).textTheme.bodyMedium
-                        ?.copyWith(color: status.error, fontSize: 11),
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: status.error,
+                      fontSize: 11,
+                    ),
                   ),
                 ),
               for (final device in _devices)
