@@ -83,6 +83,24 @@ void main() {
           ]);
       expect(selection!.path.id, 'free');
     });
+
+    test('does not report onlyOption when several paths tie on RTT', () {
+      // 多条路径 RTT 相同时，不应误报为"唯一可选项"。
+      final selection = const ControlLinkRouter(preferDataChannel: false)
+          .select(<ControlLinkPath>[
+            const ControlLinkPath(
+              kind: ControlLinkKind.mqtt,
+              id: 'a',
+              rttMs: 100,
+            ),
+            const ControlLinkPath(
+              kind: ControlLinkKind.mqtt,
+              id: 'b',
+              rttMs: 100,
+            ),
+          ]);
+      expect(selection!.reason, ControlLinkSelectionReason.lowestRtt);
+    });
   });
 
   group('ControlRttTracker', () {

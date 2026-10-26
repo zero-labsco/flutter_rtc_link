@@ -139,21 +139,19 @@ class ControlLinkRouter {
     });
 
     final best = candidates.first;
+    // `onlyOption` is already handled above for the single-candidate case. Here
+    // several paths are reachable, so the choice is by preferred kind or by
+    // lowest RTT (even when their RTTs happen to tie).
+    // `onlyOption` 已在上方单候选分支处理。此处有多条可达路径，因此按偏好类型
+    // 或最低 RTT 选择（即使它们的 RTT 恰好相等）。
     final reason = preferDataChannel && best.kind == ControlLinkKind.dataChannel
         ? ControlLinkSelectionReason.preferredKind
-        : _allSameRtt(candidates)
-        ? ControlLinkSelectionReason.onlyOption
         : ControlLinkSelectionReason.lowestRtt;
     return ControlLinkSelection(
       path: best,
       reason: reason,
       withinBudget: best.rttMs <= rttBudgetMs,
     );
-  }
-
-  static bool _allSameRtt(List<ControlLinkPath> paths) {
-    final first = paths.first.rttMs;
-    return paths.every((p) => p.rttMs == first);
   }
 }
 

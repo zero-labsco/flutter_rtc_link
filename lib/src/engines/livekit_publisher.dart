@@ -61,13 +61,22 @@ class LiveKitPublisher extends LocalPublisher {
     ClarityLevel maxClarity = ClarityLevel.p720,
   }) async {
     _ensureNotDisposed();
-    _cameraPublication = await _local?.setCameraEnabled(
+    // `_local` is null until the room connects, and LiveKit returns null then or
+    // when permission is denied — so a real track must be confirmed before the
+    // camera is reported active. / `_local` 在房间连上前为 null，此时（或权限被拒
+    // 时）LiveKit 返回 null，因此必须在确认真有轨道后才上报相机已开启。
+    final publication = await _local?.setCameraEnabled(
       true,
       cameraCaptureOptions: lk.CameraCaptureOptions(
         cameraPosition: _position(facing),
         params: capturePresetFor(maxClarity),
       ),
     );
+    if (publication == null) {
+      _status.value = _status.value.copyWith(cameraActive: false, facing: null);
+      return;
+    }
+    _cameraPublication = publication;
     _currentFacing = facing;
     _status.value = _status.value.copyWith(
       cameraActive: true,
@@ -98,14 +107,24 @@ class LiveKitPublisher extends LocalPublisher {
   @override
   Future<void> startMic() async {
     _ensureNotDisposed();
-    _micPublication = await _local?.setMicrophoneEnabled(true);
+    final publication = await _local?.setMicrophoneEnabled(true);
+    if (publication == null) {
+      _status.value = _status.value.copyWith(micActive: false);
+      return;
+    }
+    _micPublication = publication;
     _status.value = _status.value.copyWith(micActive: true);
   }
 
   @override
   Future<void> startScreenShare() async {
     _ensureNotDisposed();
-    _screenPublication = await _local?.setScreenShareEnabled(true);
+    final publication = await _local?.setScreenShareEnabled(true);
+    if (publication == null) {
+      _status.value = _status.value.copyWith(screenActive: false);
+      return;
+    }
+    _screenPublication = publication;
     _status.value = _status.value.copyWith(screenActive: true);
   }
 
@@ -187,6 +206,10 @@ class LiveKitPublisher extends LocalPublisher {
     _cameraPublication = null;
     _micPublication = null;
     _screenPublication = null;
+    // Release the notifier so listeners attached by the UI do not leak after
+    // the publisher is gone. / 释放 notifier，避免 UI 注册的监听器在推流器销毁后
+    // 泄漏。
+    _status.dispose();
   }
 
   void _ensureNotDisposed() {
