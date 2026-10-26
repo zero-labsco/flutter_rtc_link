@@ -47,6 +47,12 @@ class FakeTeleopChannel implements TeleopChannel {
     stopCount++;
     return nextSendSucceeds;
   }
+
+  @override
+  Future<void> dispose() async {
+    connected = false;
+    if (!telemetryCtrl.isClosed) await telemetryCtrl.close();
+  }
 }
 
 void main() {

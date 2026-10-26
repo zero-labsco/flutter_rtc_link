@@ -166,6 +166,13 @@ abstract class TeleopChannel {
 
   /// Whether the channel is currently connected. / 通道当前是否已连接。
   bool get isConnected;
+
+  /// Releases the channel for good. Defaults to [disconnect] so existing
+  /// implementations stay source-compatible; channels that own long-lived
+  /// controllers or a transport override it. /
+  /// 彻底释放通道。默认转发到 [disconnect] 以保持既有实现的源码兼容；持有长
+  /// 生命周期控制器或传输层的通道应覆盖它。
+  Future<void> dispose() => disconnect();
 }
 
 /// MQTT control channel (`mqtt://` / `mqtts://`). / MQTT 控制通道（`mqtt://` / `mqtts://`）。
@@ -198,6 +205,7 @@ class MqttTeleopChannel implements TeleopChannel {
   final StreamController<RobotTelemetry> _telemetryCtrl =
       StreamController<RobotTelemetry>.broadcast();
   StreamSubscription<List<MqttReceivedMessage<MqttMessage?>>>? _updatesSub;
+  bool _connecting = false;
 
   @override
   bool get isConnected =>
@@ -209,38 +217,71 @@ class MqttTeleopChannel implements TeleopChannel {
   @override
   Future<void> connect(String deviceId) async {
     if (isConnected) return;
-    final uri = Uri.parse(broker);
-    final client = MqttServerClient(
-      uri.host,
-      'rtc-link-$deviceId-${DateTime.now().microsecondsSinceEpoch}',
-    );
-    client.port = uri.hasPort
-        ? uri.port
-        : (uri.scheme == 'mqtts' ? 8883 : 1883);
-    client.secure = uri.scheme == 'mqtts';
-    client.keepAlivePeriod = keepAliveSeconds;
-    client.logging(on: false);
-    client.onDisconnected = () {
-      _telemetryCtrl.add(const RobotTelemetry(online: false));
-    };
-    final credentials = await this.credentials?.call();
-    client.connectionMessage = MqttConnectMessage()
-        .withClientIdentifier(client.clientIdentifier)
-        .startClean()
-        .withWillQos(qos);
+    // Guard against concurrent connects (reconnect racing a manual call): two
+    // overlapping runs used to build two clients while only the last one was
+    // tracked, leaking the first socket and its subscription. /
+    // 防止并发连接（重连与手动调用撞车）：重叠执行会建两个 client 而只记录最后
+    // 一个，泄漏前一个 socket 及其订阅。
+    if (_connecting) return;
+    _connecting = true;
     try {
-      await client.connect(credentials?.username, credentials?.password);
-    } catch (e) {
-      client.disconnect();
-      throw RtcException(
-        code: RtcErrorCodes.signalingFailed,
-        message: 'MQTT connect to $broker failed.',
-        cause: e,
+      // Release anything left over from a previous connection. /
+      // 释放上一次连接遗留的资源。
+      await _updatesSub?.cancel();
+      _updatesSub = null;
+      final previous = _client;
+      if (previous != null) {
+        previous.disconnect();
+        _client = null;
+      }
+      final uri = Uri.parse(broker);
+      final client = MqttServerClient(
+        uri.host,
+        'rtc-link-$deviceId-${DateTime.now().microsecondsSinceEpoch}',
       );
+      client.port = uri.hasPort
+          ? uri.port
+          : (uri.scheme == 'mqtts' ? 8883 : 1883);
+      client.secure = uri.scheme == 'mqtts';
+      client.keepAlivePeriod = keepAliveSeconds;
+      client.logging(on: false);
+      client.onDisconnected = () {
+        if (!_telemetryCtrl.isClosed) {
+          _telemetryCtrl.add(const RobotTelemetry(online: false));
+        }
+      };
+      final credentials = await this.credentials?.call();
+      client.connectionMessage = MqttConnectMessage()
+          .withClientIdentifier(client.clientIdentifier)
+          .startClean()
+          .withWillQos(qos);
+      try {
+        await client.connect(credentials?.username, credentials?.password);
+      } catch (e) {
+        client.disconnect();
+        throw RtcException(
+          code: RtcErrorCodes.signalingFailed,
+          message: 'MQTT connect to $broker failed.',
+          cause: e,
+        );
+      }
+      // connect() reports failures via connectionStatus rather than throwing,
+      // so an unchecked client would look connected while nothing flows. /
+      // connect() 通过 connectionStatus 而非抛异常报告失败，因此不检查会看起来
+      // 已连接却没有任何数据流动。
+      if (client.connectionStatus?.state != MqttConnectionState.connected) {
+        client.disconnect();
+        throw RtcException(
+          code: RtcErrorCodes.signalingFailed,
+          message: 'MQTT connect to $broker did not reach connected state.',
+        );
+      }
+      _client = client;
+      client.subscribe(topicTelemetry, qos);
+      _updatesSub = client.updates?.listen(_onUpdates);
+    } finally {
+      _connecting = false;
     }
-    _client = client;
-    client.subscribe(topicTelemetry, qos);
-    _updatesSub = client.updates?.listen(_onUpdates);
   }
 
   @override
@@ -249,6 +290,12 @@ class MqttTeleopChannel implements TeleopChannel {
     _updatesSub = null;
     _client?.disconnect();
     _client = null;
+  }
+
+  @override
+  Future<void> dispose() async {
+    await disconnect();
+    if (!_telemetryCtrl.isClosed) await _telemetryCtrl.close();
   }
 
   @override
@@ -288,8 +335,16 @@ class MqttTeleopChannel implements TeleopChannel {
       final payload = message.payload;
       if (payload is! MqttPublishMessage) continue;
       final text = MqttPublishPayload.bytesToString(payload.payload.message);
-      final telemetry = RobotTelemetry.tryFromJson(jsonDecode(text));
-      if (telemetry != null) _telemetryCtrl.add(telemetry);
+      // A non-JSON payload must not escape as an unhandled async error. /
+      // 非 JSON 载荷不应作为未处理的异步异常逃逸。
+      try {
+        final telemetry = RobotTelemetry.tryFromJson(jsonDecode(text));
+        if (telemetry != null && !_telemetryCtrl.isClosed) {
+          _telemetryCtrl.add(telemetry);
+        }
+      } catch (_) {
+        // Drop malformed frames. / 丢弃畸形帧。
+      }
     }
   }
 }
@@ -300,8 +355,16 @@ class DataChannelTeleopChannel implements TeleopChannel {
     : _channel = dataChannel {
     _messageSub = dataChannel.messageStream.listen((message) {
       if (!message.isBinary) {
-        final telemetry = RobotTelemetry.tryFromJson(jsonDecode(message.text));
-        if (telemetry != null) _telemetryCtrl.add(telemetry);
+        // A non-JSON payload must not escape as an unhandled async error. /
+        // 非 JSON 载荷不应作为未处理的异步异常逃逸。
+        try {
+          final telemetry = RobotTelemetry.tryFromJson(
+            jsonDecode(message.text),
+          );
+          if (telemetry != null) _telemetryCtrl.add(telemetry);
+        } catch (_) {
+          // Drop malformed frames. / 丢弃畸形帧。
+        }
       }
     });
     _stateSub = dataChannel.stateChangeStream.listen((state) {
@@ -337,6 +400,15 @@ class DataChannelTeleopChannel implements TeleopChannel {
   }
 
   @override
+  Future<void> dispose() async {
+    // Idempotent: disconnect() may already have run. /
+    // 幂等：disconnect() 可能已执行过。
+    await _messageSub.cancel();
+    await _stateSub.cancel();
+    if (!_telemetryCtrl.isClosed) await _telemetryCtrl.close();
+  }
+
+  @override
   Future<bool> sendVelocity(Velocity velocity) => _send(velocity.toJson());
 
   @override
@@ -365,8 +437,14 @@ class DualTeleopChannel implements TeleopChannel {
   final TeleopChannel _secondary;
   final StreamController<RobotTelemetry> _telemetryCtrl =
       StreamController<RobotTelemetry>.broadcast();
-  late final StreamSubscription<RobotTelemetry> _primarySub;
-  late final StreamSubscription<RobotTelemetry> _secondarySub;
+  // Nullable, not `late final`: disconnect() may run before connect() ever
+  // succeeded (or at all), and `late final` throws LateInitializationError
+  // there. Also, `late final` can only be assigned once, so a second connect()
+  // crashed. / 用可空而非 `late final`：disconnect() 可能在 connect() 从未成功
+  // （或从未调用）时执行，`late final` 会抛 LateInitializationError；且
+  // `late final` 只能赋值一次，第二次 connect() 会崩溃。
+  StreamSubscription<RobotTelemetry>? _primarySub;
+  StreamSubscription<RobotTelemetry>? _secondarySub;
 
   @override
   bool get isConnected => _primary.isConnected || _secondary.isConnected;
@@ -378,17 +456,35 @@ class DualTeleopChannel implements TeleopChannel {
   Future<void> connect(String deviceId) async {
     await _primary.connect(deviceId);
     await _secondary.connect(deviceId);
+    // Cancel previous listeners first: a reconnect must not double-deliver
+    // telemetry. / 先取消旧监听：重连不能重复投递遥测。
+    await _primarySub?.cancel();
+    await _secondarySub?.cancel();
     _primarySub = _primary.telemetry.listen(_telemetryCtrl.add);
     _secondarySub = _secondary.telemetry.listen(_telemetryCtrl.add);
   }
 
   @override
   Future<void> disconnect() async {
-    await _primarySub.cancel();
-    await _secondarySub.cancel();
+    await _primarySub?.cancel();
+    await _secondarySub?.cancel();
+    _primarySub = null;
+    _secondarySub = null;
     await _primary.disconnect();
     await _secondary.disconnect();
-    await _telemetryCtrl.close();
+    // Do NOT close _telemetryCtrl here: this channel can be connect()ed again,
+    // and a closed controller throws on the next telemetry frame. Call
+    // dispose() when the channel is discarded for good. /
+    // 此处不要关闭 _telemetryCtrl：本通道可以再次 connect()，而关闭的控制器会在
+    // 下一条遥测帧时抛异常。彻底丢弃通道时请调用 dispose()。
+  }
+
+  /// Releases this channel for good, closing the telemetry controller.
+  /// 彻底释放本通道，关闭遥测控制器。
+  @override
+  Future<void> dispose() async {
+    await disconnect();
+    if (!_telemetryCtrl.isClosed) await _telemetryCtrl.close();
   }
 
   @override

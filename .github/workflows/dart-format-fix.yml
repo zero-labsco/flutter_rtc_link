@@ -1,14 +1,16 @@
 name: Dart Format Auto-Fix
 
-# Automatically run `dart format` on PRs and push fixes back when the code is
-# not properly formatted. This keeps style consistent without reviewer nudging.
+# Manual-only: run from the Actions tab to format a branch and push the result.
+# 仅手动：在 Actions 页手动运行，格式化某分支并推送结果。
+#
+# The `pull_request` trigger was REMOVED on purpose: committing back to the PR
+# branch raced with CI — the bot's push started another run (which could sit in
+# `action_required`), and the branch history filled with bot commits. CI now
+# formats the tree itself and only warns, so a PR never turns red for style.
+# 有意移除了 `pull_request` 触发：向 PR 分支回推提交会与 CI 竞态——bot 的推送会
+# 再起一轮 run（可能停在 `action_required`），且分支历史里塞满 bot 提交。现在由
+# CI 自己格式化并仅告警，PR 不会因格式变红。
 on:
-  pull_request:
-    types:
-      - opened
-      - synchronize
-      - reopened
-  # Allow manual runs from the Actions tab (formats the default branch).
   workflow_dispatch:
 
 permissions:
@@ -49,12 +51,23 @@ jobs:
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
-          channel: 'stable'
-          # Keep in sync with ci.yml (flutter-version: '3.47.5'). The auto-format
-          # bot must run the SAME Dart formatter as CI, otherwise its committed
-          # "fixes" differ from what CI expects and the loop never ends.
+          # Keep in sync with ci.yml (flutter-version: '3.47.5'). This job MUST
+          # run the SAME Dart formatter as CI: an older formatter writes the
+          # OLD style, which CI then reports as unformatted — an endless loop.
+          # `cache: true` is deliberately OFF: a cached older SDK is exactly how
+          # the two drifted apart before.
+          # 与 ci.yml 保持一致（flutter-version: '3.47.5'）。本任务必须与 CI 使用
+          # 同一个 Dart 格式化器：旧版本会写出旧样式，随后又被 CI 判为未格式化，
+          # 形成死循环。此处刻意关闭 `cache: true`——缓存命中旧 SDK 正是此前两者
+          # 漂移的原因。
           flutter-version: '3.47.5'
-          cache: true
+          cache: false
+
+      - name: Print Dart version
+        # Must match the version CI runs; check this line first if CI keeps
+        # reporting files that this workflow just "fixed".
+        # 必须与 CI 运行的版本一致；若 CI 持续报出本工作流刚"修好"的文件，先看这一行。
+        run: dart --version
 
       - name: Format code
         run: dart format .

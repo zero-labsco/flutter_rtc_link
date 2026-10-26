@@ -27,16 +27,23 @@ class BleScanner {
   /// 服务的设备。
   Future<List<BleDevice>> scan({List<String>? serviceUuids}) async {
     final found = <String, BleDevice>{};
-    final subscription = FlutterBluePlus.scanResults.listen((results) {
-      for (final result in results) {
-        final id = result.device.remoteId.str;
-        found[id] = BleDevice(
-          id: id,
-          name: result.advertisementData.advName,
-          rssi: result.rssi,
-        );
-      }
-    });
+    final subscription = FlutterBluePlus.scanResults.listen(
+      (results) {
+        for (final result in results) {
+          final id = result.device.remoteId.str;
+          found[id] = BleDevice(
+            id: id,
+            name: result.advertisementData.advName,
+            rssi: result.rssi,
+          );
+        }
+      },
+      // Scan failures (Bluetooth off, missing location permission) arrive as
+      // errors on this stream; without a handler they escape as unhandled
+      // async errors. / 扫描失败（蓝牙关闭、缺少定位权限）会以错误形式到达此流；
+      // 没有处理器就会作为未处理的异步异常逃逸。
+      onError: (Object _) {},
+    );
     try {
       await FlutterBluePlus.startScan(
         // An empty service filter lists every advertising device. /
@@ -44,6 +51,12 @@ class BleScanner {
         withServices: serviceUuids?.map((u) => Guid(u)).toList() ?? <Guid>[],
         timeout: timeout,
       );
+      // `scanResults` replays the previous scan synchronously when you listen,
+      // so drop whatever it produced before this scan actually started —
+      // otherwise stale, long-gone devices show up and fail to connect. /
+      // scanResults 在 listen 时会同步回放上一次扫描结果，因此丢弃本次扫描真正
+      // 开始之前产生的条目——否则会列出早已离开的旧设备，点进去连不上。
+      found.clear();
       await Future<void>.delayed(timeout + const Duration(milliseconds: 300));
     } finally {
       await FlutterBluePlus.stopScan();

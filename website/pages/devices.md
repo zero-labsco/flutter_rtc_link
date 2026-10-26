@@ -34,6 +34,27 @@ Never hardcode a PoP (Proof of Possession), SSID or password. They are always
 supplied by the app or scanned from the device label.
 :::
 
+### NFC tags and DPP
+
+An NFC tag carries **credentials only** — reading it never provisions a device,
+so `readNfcCredential()` returns the credentials and leaves the delivery to you:
+
+```dart
+final wifi = await provisioning.readNfcCredential();  // tag only, no device
+await provisioning.provisionViaBle(device, wifi!);    // deliver it over BLE
+await provisioning.provisionViaNfc(device: device);   // or read + deliver
+```
+
+DPP needs the device's bootstrap URI (`DPP:…`), not its id: fill
+`ProvisionDevice.dppUri` from the scanned QR code, otherwise the call is
+rejected with `protocolMismatch` instead of failing opaquely inside the system
+configurator.
+
+```dart
+final device = ProvisionDevice(id: id, name: name, dppUri: scannedQr);
+await provisioning.provision(device, wifi: wifi, method: ProvisionMethod.dpp);
+```
+
 ### Local discovery
 
 ```dart

@@ -216,35 +216,67 @@ class OtaUpdater {
     var offset = 0;
     final chunks = <Uint8List>[];
     int? total;
-    while (true) {
-      final request = http.Request('GET', uri);
-      if (offset > 0) {
-        request.headers['range'] = 'bytes=$offset-';
-      }
-      final response = await http.Response.fromStream(
-        await http.Client().send(request),
-      );
-      if (response.statusCode < 200 || response.statusCode >= 300) {
-        throw RtcException(
-          code: RtcErrorCodes.signalingFailed,
-          message: 'Firmware download returned ${response.statusCode}.',
+    // One client for the whole download: creating one per chunk leaks the
+    // connection and its socket. / 整个下载共用一个 client——每片新建一个会
+    // 泄漏连接与 socket。
+    final client = http.Client();
+    try {
+      while (true) {
+        final request = http.Request('GET', uri);
+        if (offset > 0) {
+          request.headers['range'] = 'bytes=$offset-';
+        }
+        final response = await http.Response.fromStream(
+          await client.send(request),
         );
+        if (response.statusCode < 200 || response.statusCode >= 300) {
+          throw RtcException(
+            code: RtcErrorCodes.signalingFailed,
+            message: 'Firmware download returned ${response.statusCode}.',
+          );
+        }
+        final bytes = response.bodyBytes;
+        // A 200 (rather than 206) reply to a ranged request means the server
+        // ignored Range and sent the whole body: restart from scratch instead
+        // of appending duplicate bytes to what we already have. /
+        // 对带 Range 的请求返回 200（而非 206）表示服务端忽略了 Range 并发来
+        // 完整内容：此时重新开始，而不是把重复字节追加到已有数据上。
+        if (offset > 0 && response.statusCode != 206) {
+          chunks.clear();
+          offset = 0;
+        }
+        final contentRange = response.headers['content-range'];
+        if (contentRange != null) {
+          final match = RegExp(
+            r'bytes\s+(\d+)-(\d+)?/(\d+|\*)',
+          ).firstMatch(contentRange);
+          if (match != null) {
+            final start = int.tryParse(match.group(1)!);
+            final parsedTotal = int.tryParse(match.group(3)!);
+            if (parsedTotal != null) total = parsedTotal;
+            // Verify the server really resumed where we asked it to —
+            // otherwise the firmware gets duplicate / missing bytes. /
+            // 校验服务端确实从请求的偏移处续传——否则固件会多出或丢失字节。
+            if (start != null && start != offset) {
+              throw RtcException(
+                code: RtcErrorCodes.signalingFailed,
+                message: 'Server resumed at $start but $offset was requested.',
+              );
+            }
+          }
+        }
+        total ??= response.contentLength ?? 0;
+        if (bytes.isEmpty && offset > 0) break;
+        chunks.add(bytes);
+        offset += bytes.length;
+        if (total > 0) {
+          onProgress((offset / total).clamp(0.0, 1.0).toDouble());
+        }
+        if (total <= 0 || offset >= total) break;
+        if (_cancelRequested) break;
       }
-      final contentRange = response.headers['content-range'];
-      if (contentRange != null) {
-        final match = RegExp(r'/(\d+)\s*$').firstMatch(contentRange);
-        if (match != null) total = int.tryParse(match.group(1)!);
-      }
-      total ??= response.contentLength ?? 0;
-      final bytes = response.bodyBytes;
-      if (bytes.isEmpty && offset > 0) break;
-      chunks.add(bytes);
-      offset += bytes.length;
-      if (total > 0) {
-        onProgress((offset / total).clamp(0.0, 1.0).toDouble());
-      }
-      if (total <= 0 || offset >= total) break;
-      if (_cancelRequested) break;
+    } finally {
+      client.close();
     }
     if (chunks.isEmpty) {
       throw RtcException(
@@ -332,7 +364,7 @@ class OtaUpdater {
     );
     _bleClient = client;
     final done = Completer<void>();
-    client.percentageStream.listen((percent) {
+    final subscription = client.percentageStream.listen((percent) {
       if (percent == cancelledValue) {
         emit(0, OtaStage.failed, error: 'cancelled');
         if (!done.isCompleted) done.complete();
@@ -346,12 +378,25 @@ class OtaUpdater {
         emit(70 + percent * 0.3, OtaStage.transferring);
       }
     });
-    await client.run(mtuSize: mtuSize);
-    await done.future;
-    await client.dispose();
-    _bleClient = null;
+    try {
+      await client.run(mtuSize: mtuSize);
+      await done.future;
+    } finally {
+      // flutter_ota's run() rethrows on firmware / integrity errors, so the
+      // cleanup must not depend on it returning normally — otherwise every
+      // failure leaves a live BLE connection and an undisposed client. /
+      // flutter_ota 的 run() 遇到固件 / 完整性错误会重新抛出，因此清理不能依赖
+      // 它正常返回——否则每次失败都会残留一条 BLE 连接与一个未释放的 client。
+      await subscription.cancel();
+      await client.dispose();
+      _bleClient = null;
+      try {
+        await device.disconnect();
+      } catch (_) {
+        // Best effort. / 尽力而为。
+      }
+    }
     emit(100, OtaStage.rebooting);
-    await device.disconnect();
   }
 
   Future<void> _transferHttp({

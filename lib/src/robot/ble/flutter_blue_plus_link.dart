@@ -64,6 +64,7 @@ class FlutterBluePlusBleLink implements BleLink {
   final StreamController<bool> _stateCtrl = StreamController<bool>.broadcast();
   bool _userDisconnected = false;
   bool _connected = false;
+  bool _opening = false;
   int _reconnectAttempts = 0;
 
   @override
@@ -78,14 +79,30 @@ class FlutterBluePlusBleLink implements BleLink {
   @override
   Future<void> connect() async {
     _userDisconnected = false;
+    // Reset the budget: otherwise a manual connect issued after the automatic
+    // attempts ran out would never retry again. /
+    // 重置配额：否则自动重连次数耗尽后再手动 connect 将永远不再重试。
+    _reconnectAttempts = 0;
     _bt ??= BluetoothDevice(remoteId: DeviceIdentifier(device.id));
     await _open();
   }
 
   Future<void> _open() async {
+    // Guard against concurrent connects (manual connect vs reconnect timer):
+    // overlapping runs used to fight over the same state, and the failing one
+    // reset an already-established connection back to false. /
+    // 防止并发连接（手动连接与重连定时器）：重叠执行会争抢同一状态，失败的那个
+    // 会把已建立的连接重置回 false。
+    if (_opening) return;
+    _opening = true;
     final bt = _bt!;
     _stateSub ??= bt.connectionState.listen(_onBleState);
     try {
+      // Drop stale handles from the previous connection: they are invalid
+      // after a drop and would let writes target a dead link. /
+      // 丢弃上一次连接的陈旧句柄：断线后它们已失效，会让写入打向死链路。
+      _commandChar = null;
+      _telemetryChar = null;
       await bt.connect(license: license, autoConnect: false, mtu: requestedMtu);
       try {
         await bt.requestMtu(requestedMtu);
@@ -138,6 +155,8 @@ class FlutterBluePlusBleLink implements BleLink {
       _stateCtrl.add(false);
       if (!_userDisconnected && autoReconnect) _scheduleReconnect();
       rethrow;
+    } finally {
+      _opening = false;
     }
   }
 
@@ -220,5 +239,17 @@ class FlutterBluePlusBleLink implements BleLink {
     }
     _connected = false;
     _stateCtrl.add(false);
+  }
+
+  /// Releases the link completely: disconnects AND closes the broadcast
+  /// controllers. Plain [disconnect] must keep them open so the link can be
+  /// reconnected, so discarding the link needs this instead. /
+  /// 彻底释放链路：断开并关闭广播控制器。普通 [disconnect] 必须保持它们打开以便
+  /// 重连，因此丢弃链路时应改用此方法。
+  @override
+  Future<void> dispose() async {
+    await disconnect();
+    await _telemetryCtrl.close();
+    await _stateCtrl.close();
   }
 }

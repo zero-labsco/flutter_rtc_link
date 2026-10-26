@@ -208,14 +208,18 @@ class NetworkProbe {
 
   Future<NetworkProbeResult> _probe(NetworkProbeTarget target) async {
     final stopwatch = Stopwatch()..start();
+    Socket? socket;
+    var secureSucceeded = false;
     try {
-      final socket = await Socket.connect(
-        target.host,
-        target.port,
-        timeout: timeout,
-      );
+      socket = await Socket.connect(target.host, target.port, timeout: timeout);
       if (target.secure) {
+        // `SecureSocket.secure` takes over the underlying socket on success, so
+        // the secure socket owns it then. On failure the original `socket` is
+        // still ours and must be destroyed in `finally`.
+        // `SecureSocket.secure` 成功时会接管底层 socket，此时由安全 socket 负责
+        // 销毁；失败则原 `socket` 仍归我们所有，须在 `finally` 销毁。
         final secure = await SecureSocket.secure(socket, host: target.host);
+        secureSucceeded = true;
         secure.destroy();
       } else {
         socket.destroy();
@@ -234,6 +238,12 @@ class NetworkProbe {
         rttMs: stopwatch.elapsedMilliseconds.toDouble(),
         error: e.toString(),
       );
+    } finally {
+      // A failed connect or a failed TLS handshake leaves `socket` undisposed —
+      // close it here so descriptors do not accumulate across repeated probes.
+      // 连接失败或 TLS 握手失败会让 `socket` 未被销毁——在此兜底关闭，避免反复
+      // 探测时文件描述符累积。
+      if (!secureSucceeded) socket?.destroy();
     }
   }
 }
@@ -270,15 +280,28 @@ class Diagnostics {
             ));
     final logs = deviceLogs == null
         ? const <DeviceLogEntry>[]
-        : await deviceLogs
-              .collectCrashBundle(lastN: maxLogEntries)
-              .then(
-                (bundle) => (bundle['logs'] as List<dynamic>)
-                    .whereType<Map<String, dynamic>>()
-                    .map(DeviceLogEntry.fromJson)
-                    .whereType<DeviceLogEntry>()
-                    .toList(),
-              );
+        : await deviceLogs.collectCrashBundle(lastN: maxLogEntries).then((
+            bundle,
+          ) {
+            final raw = bundle['logs'];
+            if (raw is! List) {
+              return const <DeviceLogEntry>[];
+            }
+            // One corrupt log line must not abort the whole diagnostics
+            // run; skip it instead of letting `fromJson` throw.
+            // 一条坏日志不应中断整个诊断；跳过它而非让 `fromJson` 抛异常。
+            final entries = <DeviceLogEntry>[];
+            for (final item in raw) {
+              if (item is! Map<String, dynamic>) continue;
+              try {
+                final entry = DeviceLogEntry.fromJson(item);
+                if (entry != null) entries.add(entry);
+              } catch (_) {
+                continue;
+              }
+            }
+            return entries;
+          });
     final (verdict, reasons) = _classify(stats, probes, logs);
     return DiagnosticReport(
       generatedAt: DateTime.now(),

@@ -66,8 +66,15 @@ class NetworkPath {
   bool get isUnknown => since == null;
 
   /// True when both paths describe the very same link. / 两条路径是否描述的是同一条链路。
+  ///
+  /// A metered flip (Wi-Fi hotspot that started charging, cellular that turned
+  /// unmetered) is a different link for policy purposes, so it counts too.
+  /// 计费状态翻转（Wi-Fi 热点开始计费、蜂窝变为不计流量）在策略上是另一条链路，
+  /// 因此也计入比较。
   bool isSameLinkAs(NetworkPath other) =>
-      kind == other.kind && generation == other.generation;
+      kind == other.kind &&
+      generation == other.generation &&
+      metered == other.metered;
 
   /// Copies with the given fields replaced. / 复制并替换给定字段。
   NetworkPath copyWith({

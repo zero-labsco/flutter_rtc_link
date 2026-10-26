@@ -6,6 +6,7 @@ class FakeBleChannel implements BleProvisioningChannel {
   bool scanCalled = false;
   bool provisionCalled = false;
   bool provisionResult = true;
+  WifiCredential? lastWifi;
 
   @override
   Future<List<ProvisionDevice>> scan({
@@ -24,6 +25,7 @@ class FakeBleChannel implements BleProvisioningChannel {
   @override
   Future<bool> provision(ProvisionDevice device, WifiCredential wifi) async {
     provisionCalled = true;
+    lastWifi = wifi;
     return provisionResult;
   }
 }
@@ -31,12 +33,25 @@ class FakeBleChannel implements BleProvisioningChannel {
 /// Fake DPP channel. / 假 DPP 通道。
 class FakeDppChannel implements DppProvisioningChannel {
   bool called = false;
+  String? lastQrContent;
 
   @override
   Future<bool> provision({required String qrContent}) async {
     called = true;
+    lastQrContent = qrContent;
     return true;
   }
+}
+
+/// Fake NFC channel. / 假 NFC 通道。
+class FakeNfcChannel implements NfcProvisioningChannel {
+  WifiCredential? tagCredential = _wifi;
+
+  @override
+  Future<WifiCredential?> readCredentialTag() async => tagCredential;
+
+  @override
+  Future<bool> writeCredentialTag(WifiCredential wifi) async => true;
 }
 
 /// Fake SmartConfig channel. / 假 SmartConfig 通道。
@@ -131,12 +146,13 @@ void main() {
       final dpp = FakeDppChannel();
       final provisioning = DeviceProvisioning(ble: ble, dpp: dpp);
       final ok = await provisioning.provision(
-        const ProvisionDevice(id: 'dev', name: 'dev'),
+        const ProvisionDevice(id: 'dev', name: 'dev', dppUri: 'DPP:C:1/2'),
         wifi: _wifi,
         method: ProvisionMethod.dpp,
       );
       expect(ok, isTrue);
       expect(dpp.called, isTrue);
+      expect(dpp.lastQrContent, 'DPP:C:1/2');
       expect(ble.provisionCalled, isFalse);
       await provisioning.dispose();
     });
@@ -164,6 +180,85 @@ void main() {
       final provisioning = DeviceProvisioning();
       final ok = await provisioning.provisionViaDpp(qrContent: 'DPP:C:1/2');
       expect(ok, isFalse);
+      await provisioning.dispose();
+    });
+
+    test('DPP rejects a device id that is not a bootstrap URI', () async {
+      final dpp = FakeDppChannel();
+      final provisioning = DeviceProvisioning(dpp: dpp);
+      final statuses = <ProvisioningStatus>[];
+      provisioning.status.listen(statuses.add);
+      final ok = await provisioning.provisionViaDpp(qrContent: 'aa:bb:cc');
+      await _flushEvents();
+      expect(ok, isFalse);
+      expect(dpp.called, isFalse);
+      expect(statuses.last.reason, ProvisionFailureReason.protocolMismatch);
+      await provisioning.dispose();
+    });
+
+    test('the chain hands the device dppUri to DPP, not its id', () async {
+      final dpp = FakeDppChannel();
+      final provisioning = DeviceProvisioning(dpp: dpp);
+      final ok = await provisioning.provision(
+        const ProvisionDevice(
+          id: 'aa:bb:cc',
+          name: 'dev',
+          capabilities: <ProvisionMethod>{ProvisionMethod.dpp},
+          dppUri: 'DPP:V:2;M:11aa;;',
+        ),
+        wifi: _wifi,
+      );
+      expect(ok, isTrue);
+      expect(dpp.lastQrContent, 'DPP:V:2;M:11aa;;');
+      await provisioning.dispose();
+    });
+
+    test(
+      'readNfcCredential returns the tag without claiming success',
+      () async {
+        final nfc = FakeNfcChannel();
+        final provisioning = DeviceProvisioning(nfc: nfc);
+        final statuses = <ProvisioningStatus>[];
+        provisioning.status.listen(statuses.add);
+        final credential = await provisioning.readNfcCredential();
+        await _flushEvents();
+        expect(credential?.ssid, 'plant-5g');
+        expect(
+          statuses.any((s) => s.state == ProvisioningState.success),
+          isFalse,
+        );
+        await provisioning.dispose();
+      },
+    );
+
+    test('NFC without a device fails instead of reporting success', () async {
+      final nfc = FakeNfcChannel();
+      final ble = FakeBleChannel();
+      final provisioning = DeviceProvisioning(nfc: nfc, ble: ble);
+      final statuses = <ProvisioningStatus>[];
+      provisioning.status.listen(statuses.add);
+      final ok = await provisioning.provisionViaNfc();
+      await _flushEvents();
+      expect(ok, isFalse);
+      expect(statuses.last.state, ProvisioningState.failed);
+      expect(ble.provisionCalled, isFalse);
+      await provisioning.dispose();
+    });
+
+    test('provisionViaNfc delivers the tag credentials over BLE', () async {
+      final nfc = FakeNfcChannel();
+      final ble = FakeBleChannel();
+      final provisioning = DeviceProvisioning(nfc: nfc, ble: ble);
+      final ok = await provisioning.provisionViaNfc(
+        device: const ProvisionDevice(
+          id: 'aa:bb',
+          name: 'dev',
+          capabilities: <ProvisionMethod>{ProvisionMethod.ble},
+        ),
+      );
+      expect(ok, isTrue);
+      expect(ble.provisionCalled, isTrue);
+      expect(ble.lastWifi?.ssid, 'plant-5g');
       await provisioning.dispose();
     });
   });

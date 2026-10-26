@@ -34,6 +34,26 @@ provisioning.status.listen((s) {
 标签扫码获得。
 :::
 
+### NFC 标签与 DPP
+
+NFC 标签**只携带凭据**，读到它并不等于设备已配网；`readNfcCredential()` 只返回
+凭据，下发仍由你决定：
+
+```dart
+final wifi = await provisioning.readNfcCredential();  // 只读标签，不涉及设备
+await provisioning.provisionViaBle(device, wifi!);    // 经 BLE 下发
+await provisioning.provisionViaNfc(device: device);   // 或读取 + 下发一步完成
+```
+
+DPP 需要设备的引导 URI（`DPP:…`）而不是设备 id：把扫到的二维码填进
+`ProvisionDevice.dppUri`，否则调用会以 `protocolMismatch` 被拒绝，而不是在系统
+配置器里不明原因地失败。
+
+```dart
+final device = ProvisionDevice(id: id, name: name, dppUri: scannedQr);
+await provisioning.provision(device, wifi: wifi, method: ProvisionMethod.dpp);
+```
+
 ### 局域网发现
 
 ```dart

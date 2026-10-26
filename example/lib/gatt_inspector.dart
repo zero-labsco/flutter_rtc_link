@@ -37,7 +37,7 @@ class _GattInspectorState extends State<GattInspector> {
     // Release the connection and every stream (disconnect alone leaves the
     // connection-state controller open). / 释放连接与全部流（仅 disconnect 会
     // 留下连接状态控制器未关闭）。
-    _client.dispose();
+    unawaited(_client.dispose());
     super.dispose();
   }
 

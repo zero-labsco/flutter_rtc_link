@@ -151,9 +151,19 @@ class BleGattClient {
       }
       _reconnectAttempts = 0;
       _setConnected(true);
-      // Re-establish notifications after a (re)connect: the cached characteristics
-      // are invalidated on a drop and the CCCD must be re-enabled. /
-      // 重连后重新建立通知：缓存的特征在断线后失效，且 CCCD 需重新开启。
+      // Refresh cached characteristic handles after every (re)connect: they are
+      // invalidated on a drop, so read / write would otherwise target stale
+      // handles even when nothing is subscribed. /
+      // 每次（重）连后刷新缓存的特征句柄：断线会使其失效，否则即使没有订阅，
+      // read / write 也会打向陈旧句柄。
+      try {
+        await discoverServices();
+      } catch (_) {
+        // Best effort: read / write surface their own errors.
+        // 尽力而为：读 / 写会自行上报错误。
+      }
+      // Re-establish notifications after a (re)connect: the CCCD must be
+      // re-enabled. / 重连后重新建立通知：CCCD 需重新开启。
       if (_subs.isNotEmpty) {
         try {
           await _rebindSubscriptions();
@@ -257,6 +267,12 @@ class BleGattClient {
     return result;
   }
 
+  void _ensureConnected() {
+    if (!_connected) {
+      throw StateError('BleGattClient is not connected.');
+    }
+  }
+
   BluetoothCharacteristic _resolve(String charUuid) {
     final c = _chars[charUuid.toLowerCase()];
     if (c == null) {
@@ -269,6 +285,7 @@ class BleGattClient {
 
   /// Reads a characteristic. / 读取特征。
   Future<Uint8List> read(String charUuid) async {
+    _ensureConnected();
     final c = _resolve(charUuid);
     if (!c.properties.read) {
       throw StateError('Characteristic $charUuid is not readable.');
@@ -302,6 +319,7 @@ class BleGattClient {
   /// instead of leaking a second controller. / 对同一个已订阅 UUID 再次订阅会返回
   /// 既有流，而非泄漏第二个控制器。
   Stream<List<int>> subscribe(String charUuid) {
+    _ensureConnected();
     final key = charUuid.toLowerCase();
     final existing = _subs[key];
     if (existing != null) return existing.controller.stream;
@@ -324,10 +342,17 @@ class BleGattClient {
       return false;
     });
     controller.onCancel = () {
-      sub.cancel();
-      c.setNotifyValue(false).catchError((_) => false);
-      _subs.remove(key);
-      if (!controller.isClosed) controller.close();
+      // Cancel the *current* underlying listener: it is replaced on every
+      // reconnect, so cancelling the captured first one would leak the new
+      // subscription (which would then keep adding into a closed controller).
+      // / 取消*当前*的底层监听：重连后它会被替换，若取消捕获的旧监听会泄漏新
+      // 订阅（新订阅随后会持续向已关闭的 controller 投递数据）。
+      final current = _subs.remove(key);
+      unawaited(current?.dispose());
+      final currentChar = _chars[key];
+      if (currentChar != null) {
+        currentChar.setNotifyValue(false).catchError((Object _) => false);
+      }
     };
     _subs[key] = _Subscription(controller, sub);
     return controller.stream;
@@ -338,7 +363,8 @@ class BleGattClient {
   /// 在重连后，把每个活跃订阅重新指向刚发现的（有效）特征，并重新开启通知。
   Future<void> _rebindSubscriptions() async {
     if (_subs.isEmpty) return;
-    await discoverServices();
+    // _chars is refreshed by the caller (connect path) before this runs. /
+    // 调用方（连接路径）已在调用前刷新 _chars。
     for (final entry in _subs.entries) {
       final uuid = entry.key;
       final sub = entry.value;

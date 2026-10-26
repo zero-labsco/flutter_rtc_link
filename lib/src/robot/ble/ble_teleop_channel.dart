@@ -103,9 +103,16 @@ class BleTeleopChannel implements TeleopChannel {
   /// keeps the channel alive across drops).
   /// 释放内部订阅。在持有的 [RobotController] 释放时调用；它不在 [TeleopChannel]
   /// 内，因为控制器比单次连接更长寿（BLE 自动重连使通道在抖动中保持存活）。
+  @override
   Future<void> dispose() async {
     await _telemetrySub?.cancel();
     await _stateSub?.cancel();
     await _telemetryCtrl.close();
+    // Stop the transport too: otherwise a failed connect leaves the
+    // auto-reconnect timer running, which keeps retrying (and can even
+    // establish a connection) long after the caller gave up. /
+    // 同时停止传输层：否则连接失败后自动重连定时器仍在跑，会在调用方早已放弃后
+    // 继续重试（甚至真的连上设备）。
+    await _link.dispose();
   }
 }

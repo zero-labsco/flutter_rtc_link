@@ -45,6 +45,16 @@ class PbWriter {
   void _tag(int field, int wireType) => _varint((field << 3) | wireType);
 
   void _varint(int value) {
+    // Protobuf varints are unsigned; a negative value would either loop
+    // forever or blow up in addByte. Fail loudly instead. /
+    // protobuf varint 是无符号的；负值会死循环或让 addByte 崩溃，因此显式报错。
+    if (value < 0) {
+      throw ArgumentError.value(
+        value,
+        'value',
+        'protobuf varint cannot be negative',
+      );
+    }
     var v = value;
     while (v >= 0x80) {
       _builder.addByte((v & 0x7F) | 0x80);
@@ -78,6 +88,14 @@ class PbReader {
     }
     if (wireType == 2) {
       final length = _readVarint();
+      // Guard against a length that overruns the buffer. /
+      // 防止长度超出缓冲区。
+      if (length < 0 || _offset + length > _bytes.length) {
+        throw RtcException(
+          code: RtcErrorCodes.signalingFailed,
+          message: 'Truncated protobuf field (length $length).',
+        );
+      }
       final value = _bytes.sublist(_offset, _offset + length);
       _offset += length;
       return (field: field, wireType: wireType, value: value);
@@ -92,10 +110,25 @@ class PbReader {
     var result = 0;
     var shift = 0;
     while (true) {
+      // Bounds check: a truncated response must raise a typed error, not a
+      // RangeError from the raw list access. /
+      // 边界检查：响应被截断时应抛类型化错误，而不是列表访问的 RangeError。
+      if (_offset >= _bytes.length) {
+        throw RtcException(
+          code: RtcErrorCodes.signalingFailed,
+          message: 'Truncated protobuf varint.',
+        );
+      }
       final byte = _bytes[_offset++];
       result |= (byte & 0x7F) << shift;
       if ((byte & 0x80) == 0) return result;
       shift += 7;
+      if (shift > 63) {
+        throw RtcException(
+          code: RtcErrorCodes.signalingFailed,
+          message: 'Protobuf varint is too long.',
+        );
+      }
     }
   }
 
@@ -103,9 +136,15 @@ class PbReader {
   Uint8List? bytesField(int field) {
     final reader = PbReader(_bytes);
     while (reader.hasMore) {
-      final next = reader.next();
-      if (next.field == field && next.value is Uint8List) {
-        return next.value! as Uint8List;
+      try {
+        final next = reader.next();
+        if (next.field == field && next.value is Uint8List) {
+          return next.value! as Uint8List;
+        }
+      } catch (_) {
+        // A malformed field aborts the scan instead of crashing the caller. /
+        // 畸形字段中止扫描，而不是让调用方崩溃。
+        return null;
       }
     }
     return null;
@@ -115,8 +154,14 @@ class PbReader {
   int varintField(int field) {
     final reader = PbReader(_bytes);
     while (reader.hasMore) {
-      final next = reader.next();
-      if (next.field == field && next.value is int) return next.value! as int;
+      try {
+        final next = reader.next();
+        if (next.field == field && next.value is int) return next.value! as int;
+      } catch (_) {
+        // A malformed field aborts the scan instead of crashing the caller. /
+        // 畸形字段中止扫描，而不是让调用方崩溃。
+        return 0;
+      }
     }
     return 0;
   }
@@ -199,32 +244,55 @@ class ProtocommSecurity1 {
     if (key == null || nonce == null) {
       throw StateError('protocomm session is not established');
     }
-    // The device keeps one continuous CTR stream: every message continues
-    // where the previous one stopped, so the counter block is advanced by the
-    // number of whole blocks already used.
-    // 设备端维持一条连续的 CTR 流：每条消息接着上一条继续，
-    // 因此计数器块按已用完的整块数推进。
-    final secretBox = await _aes.encrypt(
-      data,
-      secretKey: SecretKey(key),
-      nonce: _advanceNonce(data.length),
-    );
-    return Uint8List.fromList(secretBox.cipherText);
+    // The device keeps ONE continuous CTR keystream: every message continues
+    // exactly where the previous one stopped — including the intra-block
+    // offset. Advancing the counter by whole blocks only (as this used to do)
+    // silently drops the remainder of a partial block and misaligns every
+    // later message, because AesCtr always starts at byte 0 of a block.
+    // 设备端维持一条连续的 CTR keystream：每条消息都精确接着上一条继续——包括
+    // 块内偏移。只按整块推进计数器（原实现）会静默丢弃不满一块的余数，而
+    // AesCtr 总是从块的第 0 字节开始，于是之后每条消息都错位。
+    final skip = _offset % 16;
+    final counter = _counterFor(_offset ~/ 16);
+    late final Uint8List cipherText;
+    if (skip == 0) {
+      final secretBox = await _aes.encrypt(
+        data,
+        secretKey: SecretKey(key),
+        nonce: counter,
+      );
+      cipherText = Uint8List.fromList(secretBox.cipherText);
+    } else {
+      // Prepend `skip` placeholder bytes so the keystream lines up with the
+      // intra-block offset, then drop them again. /
+      // 前置 skip 个占位字节使 keystream 对齐块内偏移，之后再丢弃。
+      final padded = Uint8List(skip + data.length);
+      padded.setRange(skip, padded.length, data);
+      final secretBox = await _aes.encrypt(
+        padded,
+        secretKey: SecretKey(key),
+        nonce: counter,
+      );
+      cipherText = Uint8List.fromList(secretBox.cipherText.sublist(skip));
+    }
+    _offset += data.length;
+    return cipherText;
   }
 
-  Uint8List _advanceNonce(int length) {
-    var carry = _offset ~/ 16;
-    _offset += length;
-    final nonce = Uint8List.fromList(_nonce!);
-    if (carry == 0) return nonce;
+  /// Builds the 16-byte counter block for [blockIndex] blocks past the base
+  /// nonce. / 构造相对基础 nonce 前进 [blockIndex] 块的 16 字节计数器块。
+  Uint8List _counterFor(int blockIndex) {
+    final counter = Uint8List.fromList(_nonce!);
+    if (blockIndex == 0) return counter;
     // Advance the 16-byte counter block (big-endian carry propagation).
     // 推进 16 字节计数器块（大端进位传递）。
-    for (var i = nonce.length - 1; i >= 0 && carry > 0; i--) {
-      final sum = nonce[i] + carry;
-      nonce[i] = sum & 0xFF;
+    var carry = blockIndex;
+    for (var i = counter.length - 1; i >= 0 && carry > 0; i--) {
+      final sum = counter[i] + carry;
+      counter[i] = sum & 0xFF;
       carry = sum >> 8;
     }
-    return nonce;
+    return counter;
   }
 
   /// Builds the next session request, or null when the handshake is done.
@@ -288,8 +356,15 @@ class ProtocommSecurity1 {
         message: 'Device rejected the session (status $status).',
       );
     }
-    final devicePublicKey = resp0.bytesField(2)!;
-    _deviceRandom = resp0.bytesField(3)!;
+    final devicePublicKey = resp0.bytesField(2);
+    final deviceRandom = resp0.bytesField(3);
+    if (devicePublicKey == null || deviceRandom == null) {
+      throw RtcException(
+        code: RtcErrorCodes.signalingFailed,
+        message: 'Device sent an incomplete SessionResp0.',
+      );
+    }
+    _deviceRandom = deviceRandom;
     final remotePublicKey = SimplePublicKey(
       devicePublicKey,
       type: KeyPairType.x25519,
@@ -325,12 +400,32 @@ class ProtocommSecurity1 {
   }
 
   Future<void> _setup1Response(Uint8List response) async {
+    // Never fail open: a missing payload must NOT skip device authentication,
+    // otherwise a device (or MITM) that omits SessionResp1 gets a "secure"
+    // session for free. / 绝不能失败开放：缺少载荷也不能跳过设备鉴权，否则
+    // 省略 SessionResp1 的设备（或中间人）就能白拿一个"安全"会话。
     final sec1Payload = PbReader(response).bytesField(11);
-    if (sec1Payload == null) return;
+    if (sec1Payload == null) {
+      throw RtcException(
+        code: RtcErrorCodes.signalingFailed,
+        message: 'Device sent no sec1 payload in SessionResp1.',
+      );
+    }
     final sr1 = PbReader(sec1Payload).bytesField(22);
-    if (sr1 == null) return;
+    if (sr1 == null) {
+      throw RtcException(
+        code: RtcErrorCodes.signalingFailed,
+        message: 'Device sent no SessionResp1.',
+      );
+    }
     final deviceVerify = PbReader(sr1).bytesField(2);
-    if (deviceVerify == null) return;
+    if (deviceVerify == null) {
+      throw RtcException(
+        code: RtcErrorCodes.signalingFailed,
+        message:
+            'Device sent no verification token (wrong PoP or possible MITM).',
+      );
+    }
     final decrypted = await transform(deviceVerify);
     final clientPublicKey = await _clientKey!.extractPublicKey();
     if (!_equals(decrypted, clientPublicKey.bytes)) {

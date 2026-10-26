@@ -64,6 +64,18 @@ void main() {
       expect(controller.value.mainStream?.streamId, 'b');
     });
 
+    test('stale clarity overrides are dropped with their stream', () {
+      controller.setStreams(<RemoteStream>[
+        const RemoteStream(streamId: 'a'),
+        const RemoteStream(streamId: 'b'),
+      ]);
+      controller.setStreamClarity('b', ClarityLevel.p540);
+      expect(controller.value.clarityOverrides.length, 1);
+      controller.removeStream('b');
+      expect(controller.value.clarityOverrides, isEmpty);
+      expect(controller.value.clarityFor('b'), ClarityLevel.auto);
+    });
+
     test('applyClarity invokes the callback for visible streams', () async {
       controller.setStreams(<RemoteStream>[
         const RemoteStream(streamId: 'a'),

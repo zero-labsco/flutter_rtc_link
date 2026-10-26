@@ -37,6 +37,11 @@ class LiveKitSubscriber extends RemoteSubscriber {
   @override
   VideoRenderer? get videoRenderer => null;
 
+  /// The wrapped publication (advanced escape hatch).
+  /// 被封装的 publication（高级逃生口）。
+  lk.RemoteTrackPublication<lk.RemoteVideoTrack> get publication =>
+      _publication;
+
   /// The remote video track (rendered by `RtcVideoView` through LiveKit's
   /// `VideoTrackRenderer`). / 远端视频轨道（由 `RtcVideoView` 通过 LiveKit 的
   /// `VideoTrackRenderer` 渲染）。

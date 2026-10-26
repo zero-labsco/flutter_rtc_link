@@ -150,13 +150,22 @@ class EspBleProvisioningChannel implements BleProvisioningChannel {
         );
       }
     });
-    await FlutterBluePlus.startScan(
-      withServices: <Guid>[Guid(serviceUuid)],
-      timeout: timeout,
-    );
-    await Future<void>.delayed(timeout + const Duration(milliseconds: 300));
-    await FlutterBluePlus.stopScan();
-    await subscription.cancel();
+    try {
+      await FlutterBluePlus.startScan(
+        withServices: <Guid>[Guid(serviceUuid)],
+        timeout: timeout,
+      );
+      // Drop the replayed results of the previous scan (same reason as in
+      // BleScanner). / 丢弃上一次扫描的回放结果（原因同 BleScanner）。
+      found.clear();
+      await Future<void>.delayed(timeout + const Duration(milliseconds: 300));
+    } finally {
+      // Always release the scan: startScan throws when Bluetooth is off or a
+      // permission is missing, which would otherwise leak the subscription. /
+      // 始终释放扫描：蓝牙关闭或缺少权限时 startScan 会抛异常，否则会泄漏订阅。
+      await FlutterBluePlus.stopScan();
+      await subscription.cancel();
+    }
     return found.values.toList();
   }
 
@@ -182,11 +191,40 @@ class EspBleProvisioningChannel implements BleProvisioningChannel {
       );
       if (!configured) return false;
       await prov.applyWifiConfig();
-      final status = await prov.getStatus();
-      return status.state == ProvisionConnectionState.connected;
+      // The device needs several seconds to associate: a single status read
+      // right after applying almost always reports "connecting", which used to
+      // be mis-reported as rejected credentials. /
+      // 设备需要数秒完成关联：应用配置后立刻读一次状态几乎总是返回 connecting，
+      // 过去会被误报为凭据被拒绝。
+      return await _waitForConnection(prov);
     } finally {
       await prov.dispose();
     }
+  }
+
+  /// Polls the provisioning status until the device reaches a terminal state.
+  /// 轮询配网状态直到设备进入终态。
+  Future<bool> _waitForConnection(
+    EspProtocomm prov, {
+    Duration timeout = const Duration(seconds: 20),
+    Duration interval = const Duration(seconds: 2),
+  }) async {
+    final deadline = DateTime.now().add(timeout);
+    while (DateTime.now().isBefore(deadline)) {
+      final status = await prov.getStatus();
+      switch (status.state) {
+        case ProvisionConnectionState.connected:
+          return true;
+        case ProvisionConnectionState.authError:
+        case ProvisionConnectionState.networkNotFound:
+        case ProvisionConnectionState.connectionFailed:
+          return false;
+        case ProvisionConnectionState.connecting:
+        case ProvisionConnectionState.disconnected:
+          await Future<void>.delayed(interval);
+      }
+    }
+    return false;
   }
 }
 

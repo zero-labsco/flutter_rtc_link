@@ -93,12 +93,23 @@ class WhepSubscriber extends RemoteSubscriber {
     await _startPc(iceConfiguration ?? defaultIceConfiguration());
   }
 
+  /// Candidates gathered before the WHEP resource existed. /
+  /// WHEP 资源存在之前收集到的候选。
+  final List<RTCIceCandidate> _pendingCandidates = <RTCIceCandidate>[];
+
   Future<void> _startPc(Map<String, dynamic> configuration) async {
     final pc = await createPeerConnection(configuration);
     _pc = pc;
     pc.onIceCandidate = (candidate) async {
       final resource = _whepResource;
-      if (resource == null) return;
+      if (resource == null) {
+        // Buffer it: the resource only exists once the WHEP POST returns, and
+        // dropping these meant trickle-only servers never connected. /
+        // 缓存起来：资源要等 WHEP POST 返回才存在，丢弃这些候选会让仅支持
+        // trickle 的服务端永远连不上。
+        _pendingCandidates.add(candidate);
+        return;
+      }
       await _session.client.sendCandidate(resource, candidate);
     };
     pc.onTrack = (event) {
@@ -127,9 +138,22 @@ class WhepSubscriber extends RemoteSubscriber {
       streamId: _resourceStreamId,
     );
     _whepResource = result.resource;
+    await _flushPendingCandidates();
     await pc.setRemoteDescription(
       RTCSessionDescription(result.answerSdp, 'answer'),
     );
+  }
+
+  /// Re-sends candidates gathered before the resource existed. /
+  /// 重新发送资源存在之前收集到的候选。
+  Future<void> _flushPendingCandidates() async {
+    final resource = _whepResource;
+    if (resource == null) return;
+    final pending = _pendingCandidates.toList();
+    _pendingCandidates.clear();
+    for (final candidate in pending) {
+      await _session.client.sendCandidate(resource, candidate);
+    }
   }
 
   /// Closes the peer connection and deletes the server-side WHEP resource
@@ -176,7 +200,11 @@ class WhepSubscriber extends RemoteSubscriber {
         level,
       );
       if (switched) {
-        _clarity.value = level;
+        // The engine replaced this object: the live subscriber is registered
+        // under the same stream id and already carries `level`, while `this`
+        // is disposed. Never touch a disposed notifier. /
+        // 引擎替换了本对象：存活的订阅器登记在同一 stream id 下且已带有 `level`，
+        // 而 `this` 已被销毁。绝不操作已销毁的 notifier。
         return;
       }
     }

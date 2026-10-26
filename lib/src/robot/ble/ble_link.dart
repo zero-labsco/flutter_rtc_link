@@ -30,4 +30,11 @@ abstract class BleLink {
 
   /// Whether the link is currently connected. / 当前是否已连接。
   bool get isConnected;
+
+  /// Releases the link for good. Defaults to [disconnect] so existing
+  /// implementations stay source-compatible; implementations that own
+  /// long-lived broadcast controllers should override it and close them. /
+  /// 彻底释放链路。默认转发到 [disconnect] 以保持既有实现的源码兼容；持有长
+  /// 生命周期广播控制器的实现应覆盖它并关闭它们。
+  Future<void> dispose() => disconnect();
 }

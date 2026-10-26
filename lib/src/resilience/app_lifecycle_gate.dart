@@ -21,6 +21,12 @@ class AppLifecycleGate with WidgetsBindingObserver {
 
   bool _backgrounded = false;
   bool _attached = false;
+  // Serialises `handle` so a rapid background→foreground toggle cannot run the
+  // two `onBackgroundChanged` callbacks out of order (which would tear the link
+  // down after the app came back). / 串行化 `handle`，避免快速的"后台→前台"切换
+  // 让两个 `onBackgroundChanged` 回调乱序执行（那会在应用已回到前台后错误地
+  // 拆除链路）。
+  Future<void>? _chain;
 
   /// Whether the app is currently considered backgrounded.
   /// 应用当前是否被视为处于后台。
@@ -67,8 +73,24 @@ class AppLifecycleGate with WidgetsBindingObserver {
   Future<void> handle(AppLifecycleState state) async {
     final background = isBackground(state);
     if (background == _backgrounded) return;
+    // Lock the target state synchronously so a concurrent toggle observes the
+    // new value and queues behind this transition instead of returning early
+    // (which would have left the link torn down after the app returned to the
+    // foreground). The callbacks then run strictly in order.
+    // 同步锁定目标状态，使并发切换观察到新值并排在本次之后，而非提前返回
+    // （否则应用回到前台后链路会被错误地拆除）。回调随后严格按序执行。
     _backgrounded = background;
-    await onBackgroundChanged(background);
+    final prev = _chain;
+    final completer = Completer<void>();
+    _chain = completer.future;
+    try {
+      await prev;
+      await onBackgroundChanged(background);
+    } finally {
+      // Always release the chain, even when the callback throws.
+      // 即使回调抛异常也始终释放链。
+      completer.complete();
+    }
   }
 
   @override

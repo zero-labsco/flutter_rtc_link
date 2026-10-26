@@ -99,11 +99,18 @@ void applyClarityToEncodings(
     encoding.active = isSimulcastLayerActive(rid, maxLevel);
     switch (rid) {
       case kRidFull:
+        // Every branch must break: falling through would let the later cases
+        // overwrite maxBitrate, so every layer ended up at full ~/ 4. /
+        // 每个分支都必须 break：直通会让后续 case 覆盖 maxBitrate，导致每一层
+        // 最终都变成 full ~/ 4。
         encoding.maxBitrate = fullBitrate;
+        break;
       case kRidHalf:
         encoding.maxBitrate = fullBitrate ~/ 2;
+        break;
       case kRidQuarter:
         encoding.maxBitrate = fullBitrate ~/ 4;
+        break;
     }
   }
 }

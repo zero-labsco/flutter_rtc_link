@@ -128,6 +128,11 @@ class PauseResumeGate {
   /// （调用方必须把这一点告知用户）。
   bool confirmResume(ResumeTicket ticket, {bool afterReconnect = false}) {
     if (!_paused) {
+      // Clear any orphan ticket: with _paused == false a leftover ticket keeps
+      // isActive false forever, so every operation would be silently dropped as
+      // "awaiting confirmation". / 清除孤儿票据：_paused 为 false 时残留的票据
+      // 会让 isActive 永远为 false，于是所有操作都会被当作"等待确认"静默丢弃。
+      _ticket = null;
       _reject('not paused');
       return false;
     }

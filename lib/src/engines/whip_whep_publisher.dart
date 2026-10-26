@@ -106,15 +106,31 @@ class WhipWhepPublisher extends LocalPublisher {
     final oldTrack = _cameraTrack;
     _cameraTrack = null;
     await oldTrack?.stop();
-    final stream = await _captureVideo(facing, _maxClarity);
-    final newTrack = stream.getVideoTracks().first;
-    _cameraTrack = newTrack;
-    _cameraStream = stream;
-    _currentFacing = facing;
-    if (!_isScreenSharing) {
-      await _videoSender?.replaceTrack(newTrack);
+    try {
+      final stream = await _captureVideo(facing, _maxClarity);
+      final newTrack = stream.getVideoTracks().first;
+      _cameraTrack = newTrack;
+      _cameraStream = stream;
+      _currentFacing = facing;
+      if (!_isScreenSharing) {
+        await _videoSender?.replaceTrack(newTrack);
+      }
+      _status.value = _status.value.copyWith(facing: facing);
+    } catch (e) {
+      // The old capture device is already released, so the camera really is
+      // off: report that instead of leaving a stale "camera active" status.
+      // 旧采集设备已释放，摄像头确实已关闭：如实上报，而不是留下"摄像头已开"的
+      // 失效状态。
+      final partial = _cameraTrack;
+      _cameraTrack = null;
+      _cameraStream = null;
+      if (!_isScreenSharing) {
+        await _videoSender?.replaceTrack(null);
+      }
+      await partial?.stop();
+      _status.value = _status.value.copyWith(cameraActive: false, facing: null);
+      rethrow;
     }
-    _status.value = _status.value.copyWith(facing: facing);
   }
 
   @override
@@ -335,45 +351,106 @@ class WhipWhepPublisher extends LocalPublisher {
     await _audioSender?.replaceTrack(mic);
   }
 
+  /// Candidates gathered before the WHIP resource existed. /
+  /// WHIP 资源存在之前收集到的候选。
+  final List<RTCIceCandidate> _pendingCandidates = <RTCIceCandidate>[];
+  bool _creatingPc = false;
+
   Future<void> _ensurePc({Map<String, dynamic>? configuration}) async {
     if (_pc != null) return;
-    final pc = await createPeerConnection(
-      configuration ??
-          <String, dynamic>{
-            'iceServers': _session.iceServers.map((e) => e.toMap()).toList(),
-            'sdpSemantics': 'unified-plan',
-            'bundlePolicy': 'max-bundle',
-          },
-    );
-    _pc = pc;
-    pc.onIceCandidate = (candidate) async {
+    // Serialise PC creation: concurrent startCamera() / startMic() used to
+    // build two peer connections and two WHIP resources, orphaning the first. /
+    // 串行化 PC 创建：并行的 startCamera() / startMic() 过去会建立两个 peer
+    // connection 与两个 WHIP 资源，遗弃第一个。
+    if (_creatingPc) return;
+    _creatingPc = true;
+    RTCPeerConnection? created;
+    try {
+      final pc = await createPeerConnection(
+        configuration ??
+            <String, dynamic>{
+              'iceServers': _session.iceServers.map((e) => e.toMap()).toList(),
+              'sdpSemantics': 'unified-plan',
+              'bundlePolicy': 'max-bundle',
+            },
+      );
+      created = pc;
+      _pc = pc;
+      pc.onIceCandidate = (candidate) async {
+        final resource = _whipResource;
+        if (resource == null) {
+          // Buffer it: the resource only exists once the WHIP POST returns, and
+          // dropping these meant trickle-only servers never connected. /
+          // 缓存起来：资源要等 WHIP POST 返回才存在，丢弃这些候选会让仅支持
+          // trickle 的服务端永远连不上。
+          _pendingCandidates.add(candidate);
+          return;
+        }
+        await _session.client.sendCandidate(resource, candidate);
+      };
+      // Pre-create both transceivers so mic/camera starts are pure replaceTrack.
+      // 预先创建两个 transceiver，使麦克风 / 摄像头启动都是纯 replaceTrack。
+      _videoSender = (await pc.addTransceiver(
+        kind: RTCRtpMediaType.RTCRtpMediaTypeVideo,
+        init: RTCRtpTransceiverInit(
+          direction: TransceiverDirection.SendOnly,
+          sendEncodings: buildSimulcastEncodings(_maxClarity),
+        ),
+      )).sender;
+      _audioSender = (await pc.addTransceiver(
+        kind: RTCRtpMediaType.RTCRtpMediaTypeAudio,
+        init: RTCRtpTransceiverInit(direction: TransceiverDirection.SendOnly),
+      )).sender;
+      final offer = await pc.createOffer(<String, dynamic>{});
+      await pc.setLocalDescription(offer);
+      final result = await _session.client.publish(
+        offer.sdp ?? '',
+        streamId: _session.roomId,
+      );
+      _whipResource = result.resource;
+      await _flushPendingCandidates();
+      await pc.setRemoteDescription(
+        RTCSessionDescription(result.answerSdp, 'answer'),
+      );
+    } catch (e) {
+      // Leave nothing half-built: a failed _ensurePc used to keep _pc set, so
+      // every later call returned early and the publisher stayed "connected"
+      // while actually dead. / 不留半成品：失败的 _ensurePc 过去会让 _pc 保持已
+      // 设置，于是后续调用直接早退，推流器实际已死却仍显示"已连接"。
+      _pc = null;
+      _videoSender = null;
+      _audioSender = null;
       final resource = _whipResource;
-      if (resource == null) return;
+      _whipResource = null;
+      _pendingCandidates.clear();
+      if (resource != null) {
+        try {
+          await _session.client.delete(resource);
+        } catch (_) {
+          // Best effort. / 尽力而为。
+        }
+      }
+      try {
+        await created?.close();
+      } catch (_) {
+        // Best effort. / 尽力而为。
+      }
+      rethrow;
+    } finally {
+      _creatingPc = false;
+    }
+  }
+
+  /// Re-sends candidates that were gathered before the resource existed. /
+  /// 重新发送资源存在之前收集到的候选。
+  Future<void> _flushPendingCandidates() async {
+    final resource = _whipResource;
+    if (resource == null) return;
+    final pending = _pendingCandidates.toList();
+    _pendingCandidates.clear();
+    for (final candidate in pending) {
       await _session.client.sendCandidate(resource, candidate);
-    };
-    // Pre-create both transceivers so mic/camera starts are pure replaceTrack.
-    // 预先创建两个 transceiver，使麦克风 / 摄像头启动都是纯 replaceTrack。
-    _videoSender = (await pc.addTransceiver(
-      kind: RTCRtpMediaType.RTCRtpMediaTypeVideo,
-      init: RTCRtpTransceiverInit(
-        direction: TransceiverDirection.SendOnly,
-        sendEncodings: buildSimulcastEncodings(_maxClarity),
-      ),
-    )).sender;
-    _audioSender = (await pc.addTransceiver(
-      kind: RTCRtpMediaType.RTCRtpMediaTypeAudio,
-      init: RTCRtpTransceiverInit(direction: TransceiverDirection.SendOnly),
-    )).sender;
-    final offer = await pc.createOffer(<String, dynamic>{});
-    await pc.setLocalDescription(offer);
-    final result = await _session.client.publish(
-      offer.sdp ?? '',
-      streamId: _session.roomId,
-    );
-    _whipResource = result.resource;
-    await pc.setRemoteDescription(
-      RTCSessionDescription(result.answerSdp, 'answer'),
-    );
+    }
   }
 
   Future<void> _deleteResource() async {
