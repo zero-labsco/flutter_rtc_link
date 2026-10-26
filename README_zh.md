@@ -18,7 +18,7 @@
 [![Style: effective dart](https://img.shields.io/badge/style-effective_dart-40c4ff.svg)](https://pub.dev/packages/effective_dart)
 [![Docs](https://img.shields.io/badge/docs-GitHub%20Pages-4cc38a.svg)](https://zero-labsco.github.io/flutter_rtc_link/)
 
-> **🔔 推荐升级：** `0.3.1` 加固了拆除、链路策略与配网语义——修复了 WebRTC、BLE、MQTT、OTA 与配网各处的泄漏、崩溃与协议缺陷（见 CHANGELOG）。`0.3.0` 的 **基于 BLE GATT 的持久控制通道** 保持不变：`BleTeleopChannel` 实现 `TeleopChannel`、可直接接入 `RobotController` / `DualTeleopChannel`、断线自动重连，并配套 `BleTeleopDiscoverer` 扫描器。建议所有用户升级到最新版本（`^0.3.1`）。
+> **🔔 推荐升级：** `0.3.1` 加固了拆除、链路策略与配网语义——修复了 WebRTC、BLE、MQTT、OTA 与配网各处的泄漏、崩溃与协议缺陷（见 CHANGELOG）。插件同时提供 **基于 BLE GATT 的持久控制通道**：`BleTeleopChannel` 实现 `TeleopChannel`、可直接接入 `RobotController` / `DualTeleopChannel`、断线自动重连，并配套 `BleTeleopDiscoverer` 扫描器。建议所有用户升级到最新版本（`^0.3.1`）。
 
 🌐 **[文档站](https://zero-labsco.github.io/flutter_rtc_link/)** &nbsp;·&nbsp; 📦 **[在 pub.dev 查看](https://pub.dev/packages/flutter_rtc_link)** &nbsp;·&nbsp; 🔗 **[查看 GitHub 仓库](https://github.com/zero-labsco/flutter_rtc_link)**
 

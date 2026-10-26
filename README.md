@@ -18,7 +18,7 @@ Real-time audio/video (WebRTC) and IoT device management in one Flutter plugin: 
 [![Style: effective dart](https://img.shields.io/badge/style-effective_dart-40c4ff.svg)](https://pub.dev/packages/effective_dart)
 [![Docs](https://img.shields.io/badge/docs-GitHub%20Pages-4cc38a.svg)](https://zero-labsco.github.io/flutter_rtc_link/)
 
-> **🔔 Upgrade recommended:** `0.3.1` hardens teardown, link policy and provisioning semantics — it fixes leaks, crashes and protocol bugs across WebRTC, BLE, MQTT, OTA and provisioning (see CHANGELOG). The **persistent BLE GATT teleop control channel** from `0.3.0` is unchanged: `BleTeleopChannel` implements `TeleopChannel`, drops into `RobotController` / `DualTeleopChannel`, auto-reconnects on a drop, and ships with `BleTeleopDiscoverer`. All users should upgrade to the latest version (`^0.3.1`).
+> **🔔 Upgrade recommended:** `0.3.1` hardens teardown, link policy and provisioning semantics — it fixes leaks, crashes and protocol bugs across WebRTC, BLE, MQTT, OTA and provisioning (see CHANGELOG). The plugin also provides a **persistent BLE GATT teleop control channel**: `BleTeleopChannel` implements `TeleopChannel`, drops into `RobotController` / `DualTeleopChannel`, auto-reconnects on a drop, and ships with `BleTeleopDiscoverer`. All users should upgrade to the latest version (`^0.3.1`).
 
 🌐 **[Documentation](https://zero-labsco.github.io/flutter_rtc_link/)** &nbsp;·&nbsp; 📦 **[View on pub.dev](https://pub.dev/packages/flutter_rtc_link)** &nbsp;·&nbsp; 🔗 **[View on GitHub](https://github.com/zero-labsco/flutter_rtc_link)**
 
