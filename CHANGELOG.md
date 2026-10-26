@@ -67,6 +67,16 @@
   - 修复 `switchToVariantStream()`：先登记替代者再丢弃旧订阅器（绝不交出已销毁对象），并在切换期间会话被释放时清理新建的服务端资源。
 - Fixed `RoleTransfer.handover()` leaving two anchors publishing at once: when revoking the previous anchor fails, the first grant is rolled back.
   - 修复 `RoleTransfer.handover()` 可能留下两个牵头同时推流的问题：收回原牵头失败时回滚第一次授权。
+- Fixed LiveKit leaking a `Room` on every reconnect: the session now calls `room.dispose()` after `disconnect()`, so long-running sessions no longer accumulate rooms (a source of connection/handle leaks during 7×24 operation).
+  - 修复 LiveKit 每次重连泄漏 `Room` 的问题：会话在 `disconnect()` 之后现在调用 `room.dispose()`，长时间运行的会话不再累积 Room（7×24 运行期间连接 / 句柄泄漏的来源之一）。
+- Fixed `LiveKitPublisher` leaks and false "active" status: `dispose()` now releases the `ValueNotifier` (UI listeners no longer leak), and `startCamera` / `startMic` / `startScreenShare` no longer report the track as active when the room is not connected or permission is denied (they now report it off).
+  - 修复 `LiveKitPublisher` 的泄漏与"已开启"假状态：`dispose()` 现在释放 `ValueNotifier`（UI 监听者不再泄漏）；房间未连或权限被拒时，`startCamera` / `startMic` / `startScreenShare` 不再谎报轨道已开启（现如实上报为关闭）。
+- Fixed `Diagnostics` leaking a socket on a failed TLS handshake and aborting on one bad log line: the probe now destroys the underlying socket in `finally`, and crash-log parsing guards the type and skips corrupt lines instead of throwing.
+  - 修复 `Diagnostics` 在 TLS 握手失败时泄漏 socket、且一条坏日志就中止整个诊断的问题：探测现在在 `finally` 销毁底层 socket，崩溃日志解析增加类型防护并跳过损坏行而非抛异常。
+- Fixed `AppLifecycleGate` tearing the link down after the app returned to the foreground: lifecycle transitions are now serialised, so a rapid background→foreground toggle ends in the foreground.
+  - 修复 `AppLifecycleGate` 在应用回到前台后错误拆除链路的问题：生命周期切换现已串行化，快速的"后台→前台"切换最终落在前台。
+- Fixed `ControlLinkRouter` mislabeling a multi-path selection as `onlyOption`: when several reachable paths tie on RTT it now reports `lowestRtt` instead of falsely claiming there was only one path.
+  - 修复 `ControlLinkRouter` 把多路径选择误标为 `onlyOption` 的问题：多条可达路径 RTT 恰好相等时，现改为上报 `lowestRtt`，而非谎称只有一条路径。
 
 ## 0.3.0
 
