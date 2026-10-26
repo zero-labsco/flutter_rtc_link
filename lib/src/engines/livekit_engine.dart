@@ -276,6 +276,16 @@ class LiveKitSession extends RtcSession {
     _publisher = null;
     await _listener.dispose();
     await _room.disconnect();
+    // LiveKit keeps Dart-side listeners and native handles alive after
+    // disconnect; without dispose() a reconnect allocates a fresh Room while the
+    // old one leaks, so long-running sessions accumulate rooms. /
+    // LiveKit 在 disconnect 之后仍保留 Dart 侧的监听器与原生句柄；不调用 dispose()，
+    // 重连会新建 Room 而旧的持续泄漏，长时间运行的会话会不断累积 Room。
+    try {
+      await _room.dispose();
+    } catch (e) {
+      _logger.fine('room dispose failed: $e');
+    }
     _eventsCtrl.add(const RtcDisconnected(reason: 'left'));
     _publishRemoteStreams();
   }
