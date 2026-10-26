@@ -2,11 +2,12 @@
 
 <div align="center" style="display: flex; align-items: center; justify-content: center; gap: 24px;">
 
-<span style="font-size: 1.1em; padding: 0 8px;"><strong>绠€浣撲腑鏂?/strong> &nbsp;|&nbsp; <a href="README.md">English</a></span>
+<span style="font-size: 1.1em; padding: 0 8px;"><strong>简体中文</strong> &nbsp;|&nbsp; <a href="README.md">English</a></span>
 
 </div>
 
-涓€涓?Flutter 鎻掍欢鍚屾椂鎼炲畾瀹炴椂闊宠棰戯紙WebRTC锛夊拰鐗╄仈缃戣澶囩鐞嗭細鐢ㄤ袱濂楀彲浠绘剰鍒囨崲鐨勫紩鎿庢帹娴?/ 鎷夋祦锛屾瘡鏉℃祦閮借兘鍗曠嫭璋冩竻鏅板害锛屽苟鏀寔鐩存挱娴佽浆鎺紱杩樿兘閫氳繃浣庡欢杩熸帶鍒堕€氶亾杩滅▼鎿嶆帶鏈哄櫒浜猴紝浠ュ強瀵硅澶囧仛閰嶇綉銆佸浐浠跺崌绾т笌璇婃柇銆傛澶栧唴缃竴灞備笓涓烘捣澶?/ 璺ㄥ叕缃戝急缃戠幆澧冩墦閫犵殑闊ф€ц兘鍔涳紙鑷姩閲嶈繛銆佸急缃戞仮澶嶃€佷腑缁у垏鎹㈢瓑锛夈€?
+一个 Flutter 插件同时搞定实时音视频（WebRTC）和物联网设备管理：用两套可任意切换的引擎推流 / 拉流，每条流都能单独调清晰度，并支持直播流转推；还能通过低延迟控制通道远程操控机器人，以及对设备做配网、固件升级与诊断。此外内置一层专为海外 / 跨公网弱网环境打造的韧性能力（自动重连、弱网恢复、中继切换等）。
+
 [![pub version](https://img.shields.io/pub/v/flutter_rtc_link.svg)](https://pub.dev/packages/flutter_rtc_link)
 [![pub points](https://img.shields.io/pub/points/flutter_rtc_link.svg)](https://pub.dev/packages/flutter_rtc_link/score)
 [![CI](https://github.com/zero-labsco/flutter_rtc_link/actions/workflows/ci.yml/badge.svg)](https://github.com/zero-labsco/flutter_rtc_link/actions/workflows/ci.yml)
@@ -17,74 +18,106 @@
 [![Style: effective dart](https://img.shields.io/badge/style-effective_dart-40c4ff.svg)](https://pub.dev/packages/effective_dart)
 [![Docs](https://img.shields.io/badge/docs-GitHub%20Pages-4cc38a.svg)](https://zero-labsco.github.io/flutter_rtc_link/)
 
-> **馃敂 鎺ㄨ崘鍗囩骇锛?* `0.3.1` 鏂板 **鍩轰簬 BLE GATT 鐨勬寔涔呮帶鍒堕€氶亾**鈥斺€擿BleTeleopChannel` 瀹炵幇 `TeleopChannel`锛屽彲鐩存帴鎺ュ叆 `RobotController` / `DualTeleopChannel`锛堢湅闂ㄧ嫍銆乪poch 闂ㄦ帶涓庝繚娲婚€昏緫涓嶅彉锛夛紝鏂嚎鑷姩閲嶈繛锛屽苟閰嶅 `BleTeleopDiscoverer` 鎵弿鍣ㄣ€傚彲鐢ㄤ簬鐩磋繛銆佸厤缃戠粶鐨勮繙鎺э紝鎴栦綔涓虹綉缁滄柇閾炬椂鐨勫厹搴曘€傚缓璁墍鏈夌敤鎴峰崌绾у埌鏈€鏂扮増鏈紙`^0.3.1`锛夈€?
-馃寪 **[鏂囨。绔橾(https://zero-labsco.github.io/flutter_rtc_link/)** &nbsp;路&nbsp; 馃摝 **[鍦?pub.dev 鏌ョ湅](https://pub.dev/packages/flutter_rtc_link)** &nbsp;路&nbsp; 馃敆 **[鏌ョ湅 GitHub 浠撳簱](https://github.com/zero-labsco/flutter_rtc_link)**
+> **🔔 推荐升级：** `0.3.1` 加固了拆除、链路策略与配网语义——修复了 WebRTC、BLE、MQTT、OTA 与配网各处的泄漏、崩溃与协议缺陷（见 CHANGELOG）。`0.3.0` 的 **基于 BLE GATT 的持久控制通道** 保持不变：`BleTeleopChannel` 实现 `TeleopChannel`、可直接接入 `RobotController` / `DualTeleopChannel`、断线自动重连，并配套 `BleTeleopDiscoverer` 扫描器。建议所有用户升级到最新版本（`^0.3.1`）。
+
+🌐 **[文档站](https://zero-labsco.github.io/flutter_rtc_link/)** &nbsp;·&nbsp; 📦 **[在 pub.dev 查看](https://pub.dev/packages/flutter_rtc_link)** &nbsp;·&nbsp; 🔗 **[查看 GitHub 仓库](https://github.com/zero-labsco/flutter_rtc_link)**
 
 ---
 
-## 鐩綍
+## 目录
 
-- [鍔熻兘鐗规€(#鍔熻兘鐗规€?
-- [瀹夎](#瀹夎)
-- [浣跨敤](#浣跨敤)
-  - [蹇€熷紑濮媇(#蹇€熷紑濮?
-  - [鎺ㄦ祦](#鎺ㄦ祦)
-  - [璁㈤槄](#璁㈤槄)
-  - [闊ф€э紙娴峰銆佸垏缃戙€佸急缃戙€佸悗鍙帮級](#闊ф€ф捣澶栧垏缃戝急缃戝悗鍙?
-  - [鏈哄櫒浜鸿繙鎺(#鏈哄櫒浜鸿繙鎺?
-  - [璁惧绠＄悊](#璁惧绠＄悊)
-  - [鏉冮檺](#鏉冮檺)
-- [API 鍙傝€僝(#api-鍙傝€?
-- [绀轰緥](#绀轰緥)
-- [娴嬭瘯](#娴嬭瘯)
-- [鏂囨。](#鏂囨。)
-- [璐＄尞](#璐＄尞)
-- [璁稿彲](#璁稿彲)
+- [功能特性](#功能特性)
+- [安装](#安装)
+- [使用](#使用)
+  - [快速开始](#快速开始)
+  - [推流](#推流)
+  - [订阅](#订阅)
+  - [韧性（海外、切网、弱网、后台）](#韧性海外切网弱网后台)
+  - [机器人远控](#机器人远控)
+  - [设备管理](#设备管理)
+  - [权限](#权限)
+- [API 参考](#api-参考)
+- [示例](#示例)
+- [测试](#测试)
+- [文档](#文档)
+- [贡献](#贡献)
+- [许可](#许可)
 
 ---
 
-## 鍔熻兘鐗规€?
-- **鍙屽紩鎿庛€佺粺涓€鎶借薄** 鈥斺€?鍩轰簬 `flutter_webrtc` 鐨?WHIP/WHEP 瀵规帴鑷缓 SRS /
-  ZLMediaKit / MediaMTX锛屽熀浜?`livekit_client` 鐨?LiveKit 瀵规帴浜掑姩鎴块棿銆傛崲淇′护瀵硅薄
-  鍗冲彲锛屽叾浣欎唬鐮侀浂鏀瑰姩銆?- **鎺ㄦ祦涓?simulcast** 鈥斺€?`startCamera` / `startMic` / `startScreenShare`锛?  `switchCamera` 璧?`replaceTrack`锛堥浂閲嶅崗鍟嗭紝绗﹀悎 RFC 9725锛夛紱`setPublishClarity`
-  鍙檺鍒舵渶楂樺眰銆?- **璁㈤槄涓庢竻鏅板害鍒囨崲** 鈥斺€?WHEP 鎷夋祦銆佹寜娴?`setClarity`銆佺函 Dart 鐨?  `VideoGridController`锛堜富璁?/ 鐢讳腑鐢?/ 缃戞牸甯冨眬銆佹渶澶у彲瑙佹暟銆佸叏灞€娓呮櫚搴︼級锛?  娌℃湁鍙樹綋娴佹椂鏄庣‘涓婃姤鑰岄潪鍋囪鑳藉垏銆?- **鐩存挱杞帴** 鈥斺€?`RoleTransfer.promote` / `handover`锛堣韩浠戒氦鎺ワ級涓?  `StreamRelay.toRtmp` / `cascade`锛堟湇鍔＄ Egress 鎴栦簩娆?WHIP 鎺ㄦ祦锛夈€?- **鏈哄櫒浜鸿繙鎺?* 鈥斺€?鎽囨潌閫熷害銆佺嫭绔嬮€氶亾鐨?PTZ銆侀仴娴嬨€佸璁叉帴鍏ワ紝浠ュ強鎸囦护瓒呮椂 / 鍙戦€?  琚嫆 / 鏂摼鏃?500ms 鍐呰嚜鍔ㄥ仠杞︾殑鐪嬮棬鐙楋紱鍙︽彁渚涘熀浜?BLE GATT 鐨勬寔涔呮帶鍒堕€氶亾
-  锛坄BleTeleopChannel`锛夛紝鍙洿杩炪€佸厤缃戠粶杩滄帶銆?- **闈㈠悜浠绘剰璁惧鐨勯€氱敤 BLE** 鈥斺€?`BleScanner` 鍙彂鐜伴檮杩戜换鎰?BLE 璁惧锛?  `BleGattClient` 璐熻矗杩炴帴銆佸彂鐜?GATT 鏈嶅姟骞舵毚闇插師濮嬬殑 `read` / `write` /
-  `subscribe`鈥斺€斾笉鍋氫换浣曟満鍣ㄤ汉鎴?ESP 濂戠害鍋囪锛屽洜姝ら煶鍝?/ 浼犳劅鍣?/ 澶栬绫婚」鐩?  鍚屾牱鑳界敤涓婃彃浠剁殑 BLE 鑳藉姏銆傚熀浜?`flutter_blue_plus`锛屼緷璧栨爲涓伆濂藉彧鏈変竴涓?  钃濈墮搴撱€?- **鐗╄仈缃戣澶囧洓浠跺** 鈥斺€?澶氶€氶亾 `DeviceProvisioning`锛圔LE 鈫?DPP/QR 鈫?NFC 鈫?  SoftAP 鈫?SmartConfig 鑷姩闄嶇骇锛夈€乣OtaUpdater`銆乣DeviceLogCollector`锛堟湰鍦扮紦瀛?+
-  鎵归噺琛ヤ紶锛変笌 `Diagnostics`锛坰tats + 缃戠粶鎺㈡祴 + 鏃ュ織 鈫?JSON/Markdown锛夈€?- **闈㈠悜娴峰閾捐矾鐨勯煣鎬?* 鈥斺€?鍙楁帶寤洪摼銆佸甫鎶栧姩閫€閬跨殑閲嶈繛涓庤嚜鍔ㄩ噸璁㈤槄銆乀URN 涓户鍗囩骇銆?  Wi-Fi 鈫?铚傜獫 ICE 閲嶅惎銆佸崱椤?/ 鎷ュ / 鐢婚潰鍐荤粨鑷剤銆?- **鏆傚仠 / 鎭㈠纭** 鈥斺€?姣忎釜鎿嶄綔閮藉甫 epoch 鎴筹紱鏆傚仠鍗冲け鏁堬紝鎭㈠鏄袱姝ョエ鎹彙鎵嬶紝
-  涓柇鍓嶉噰闆嗗埌鐨勬寚浠ょ粷涓嶄細鍦ㄦ仮澶嶅悗琚ˉ鍙戙€?- **浣庢椂寤舵帶鍒堕摼璺?* 鈥斺€?`ControlLinkRouter`锛堟暟鎹€氶亾浼樺厛銆丮QTT 鍥為€€銆佸甫鏃跺欢棰勭畻锛夈€?  `ControlRttTracker`銆乣CommandRateLimiter`锛氬厛闄嶈棰戯紝鎺у埗鎸囦护鏈€鍚庢墠鍙楀奖鍝嶃€?- **缁熶竴鏉冮檺鍏ュ彛** 鈥斺€?`RtcPermissions.requestAll(...)` 瑕嗙洊 Android 13/14+ 涓?iOS
-  鐨勫悇绫诲潙锛涜鎷掓椂鍔熻兘闄嶇骇骞朵笂鎶?`RtcEvent.permissionDenied`锛屼笉宕╂簝銆?- **璇ユ湁鍘熺敓灏辨湁鍘熺敓** 鈥斺€?Android DPP锛圵i-Fi Easy Connect锛夊钩鍙伴€氶亾 + 楹﹀厠椋庡墠鍙?  鏈嶅姟锛沬OS Swift method channel 妗┿€?- **璺ㄥ钩鍙?* 鈥斺€?Android 涓?iOS銆?
+## 功能特性
+
+- **双引擎、统一抽象** —— 基于 `flutter_webrtc` 的 WHIP/WHEP 对接自建 SRS /
+  ZLMediaKit / MediaMTX，基于 `livekit_client` 的 LiveKit 对接互动房间。换信令对象
+  即可，其余代码零改动。
+- **推流与 simulcast** —— `startCamera` / `startMic` / `startScreenShare`；
+  `switchCamera` 走 `replaceTrack`（零重协商，符合 RFC 9725）；`setPublishClarity`
+  只限制最高层。
+- **订阅与清晰度切换** —— WHEP 拉流、按流 `setClarity`、纯 Dart 的
+  `VideoGridController`（主讲 / 画中画 / 网格布局、最大可见数、全局清晰度）；
+  没有变体流时明确上报而非假装能切。
+- **直播转接** —— `RoleTransfer.promote` / `handover`（身份交接）与
+  `StreamRelay.toRtmp` / `cascade`（服务端 Egress 或二次 WHIP 推流）。
+- **机器人远控** —— 摇杆速度、独立通道的 PTZ、遥测、对讲接入，以及指令超时 / 发送
+  被拒 / 断链时 500ms 内自动停车的看门狗；另提供基于 BLE GATT 的持久控制通道
+  （`BleTeleopChannel`），可直连、免网络远控。
+- **面向任意设备的通用 BLE** —— `BleScanner` 可发现附近任意 BLE 设备，
+  `BleGattClient` 负责连接、发现 GATT 服务并暴露原始的 `read` / `write` /
+  `subscribe`——不做任何机器人或 ESP 契约假设，因此音响 / 传感器 / 外设类项目
+  同样能用上插件的 BLE 能力。基于 `flutter_blue_plus`，依赖树中恰好只有一个
+  蓝牙库。
+- **物联网设备四件套** —— 多通道 `DeviceProvisioning`（BLE → DPP/QR → NFC →
+  SoftAP → SmartConfig 自动降级）、`OtaUpdater`、`DeviceLogCollector`（本地缓存 +
+  批量补传）与 `Diagnostics`（stats + 网络探测 + 日志 → JSON/Markdown）。
+- **面向海外链路的韧性** —— 受控建链、带抖动退避的重连与自动重订阅、TURN 中继升级、
+  Wi-Fi ↔ 蜂窝 ICE 重启、卡顿 / 拥塞 / 画面冻结自愈。
+- **暂停 / 恢复确认** —— 每个操作都带 epoch 戳；暂停即失效，恢复是两步票据握手，
+  中断前采集到的指令绝不会在恢复后被补发。
+- **低时延控制链路** —— `ControlLinkRouter`（数据通道优先、MQTT 回退、带时延预算）、
+  `ControlRttTracker`、`CommandRateLimiter`：先降视频，控制指令最后才受影响。
+- **统一权限入口** —— `RtcPermissions.requestAll(...)` 覆盖 Android 13/14+ 与 iOS
+  的各类坑；被拒时功能降级并上报 `RtcEvent.permissionDenied`，不崩溃。
+- **该有原生就有原生** —— Android DPP（Wi-Fi Easy Connect）平台通道 + 麦克风前台
+  服务；iOS Swift method channel 桩。
+- **跨平台** —— Android 与 iOS。
+
 ---
 
-## 瀹夎
+## 安装
 
-### 浠?pub.dev 瀹夎锛堟帹鑽愶級
+### 从 pub.dev 安装（推荐）
 
 ```yaml
 dependencies:
   flutter_rtc_link: ^0.3.1
 ```
 
-### 浠?GitHub 瀹夎
+### 从 GitHub 安装
 
 ```yaml
 dependencies:
   flutter_rtc_link:
     git:
       url: https://github.com/zero-labsco/flutter_rtc_link.git
-      ref: release/v0.3.1   # 鎶?0.3.1 鎹㈡垚浣犻渶瑕佺殑鐗堟湰
+      ref: release/v0.3.1   # 把 0.3.1 换成你需要的版本
 ```
 
-### 骞冲彴閰嶇疆
+### 平台配置
 
-| 骞冲彴 | 瑕佹眰 |
+| 平台 | 要求 |
 | --- | --- |
 | Flutter | >= 3.35.0 |
 | Dart SDK | >= 3.9.0 < 4.0.0 |
-| Android | `minSdk 24`锛宍compileSdk 36+` |
+| Android | `minSdk 24`，`compileSdk 36+` |
 | iOS | 15.0+ |
 
-Android 鏉冮檺鐢辨彃浠惰嚜鍔ㄥ悎骞躲€俰OS 鐨勭敤閫斿瓧绗︿覆鏃犳硶鐢辨彃浠舵敞鍏ワ紝璇锋寜闇€鍦?`ios/Runner/Info.plist` 娣诲姞 `NSCameraUsageDescription`銆?`NSMicrophoneUsageDescription`銆乣NSBluetoothAlwaysUsageDescription`銆?`NSLocalNetworkUsageDescription`銆乣NFCReaderUsageDescription` 涓?`UIBackgroundModes: audio`銆?
-### 瀵煎叆
+Android 权限由插件自动合并。iOS 的用途字符串无法由插件注入，请按需在
+`ios/Runner/Info.plist` 添加 `NSCameraUsageDescription`、
+`NSMicrophoneUsageDescription`、`NSBluetoothAlwaysUsageDescription`、
+`NSLocalNetworkUsageDescription`、`NFCReaderUsageDescription` 与
+`UIBackgroundModes: audio`。
+
+### 导入
 
 ```dart
 import 'package:flutter_rtc_link/flutter_rtc_link.dart';
@@ -92,15 +125,17 @@ import 'package:flutter_rtc_link/flutter_rtc_link.dart';
 
 ---
 
-## 浣跨敤
+## 使用
 
-### 蹇€熷紑濮?
+### 快速开始
+
 ```dart
 final engine = await RtcEngine.create(
   signaling: WhipWhepSignaling(
     whipUrl: 'https://srs.example.com/rtc/v1/whip/',
     whepUrl: 'https://srs.example.com/rtc/v1/whep/',
-    // 璺ㄥ叕缃戝繀椤婚儴缃?TURN銆?    iceServers: <IceServer>[
+    // 跨公网必须部署 TURN。
+    iceServers: <IceServer>[
       const IceServer(urls: 'stun:stun.example.com:3478'),
       IceServer(
         urls: 'turn:turn-ap.example.com:3478',
@@ -115,32 +150,36 @@ final session = await engine.join(roomId: 'robot-42', role: RtcRole.robotOperato
 final remote = await session.subscribe(streamId: 'robot-42', quality: ClarityLevel.p720);
 ```
 
-### 鎺ㄦ祦
+### 推流
 
 ```dart
 final publisher = session.localPublisher!;
 await publisher.startCamera(facing: CameraFacing.rear, maxClarity: ClarityLevel.p720);
 await publisher.startMic();
-await publisher.switchCamera(facing: CameraFacing.front); // replaceTrack锛屼笉閲嶅崗鍟?await publisher.setPublishClarity(ClarityLevel.p360);     // 鍙檺鍒舵渶楂樺眰
+await publisher.switchCamera(facing: CameraFacing.front); // replaceTrack，不重协商
+await publisher.setPublishClarity(ClarityLevel.p360);     // 只限制最高层
 ```
 
-### 璁㈤槄
+### 订阅
 
 ```dart
-await remote.setClarity(ClarityLevel.p540);   // 鍙奖鍝嶈繖涓€璺?final grid = VideoGridController()..addStream(stream);
+await remote.setClarity(ClarityLevel.p540);   // 只影响这一路
+final grid = VideoGridController()..addStream(stream);
 grid.setMain('robot-42');
 RtcVideoView(subscriber: remote);
 ```
 
 :::note
-鍗曞眰鐮佹祦娌℃湁杞欢娓呮櫚搴﹀垏鎹㈣兘鍔涖€傝涔堟湇鍔＄杞爜锛岃涔堟妸涓?瀛愮爜娴佸彂甯冧负涓嶅悓 stream
-id锛坄_sd` / `_hd` / `_fhd`锛夆€斺€旀彃浠朵細鍦ㄥ叾闂村垏鎹紙1~2s 闂柇锛夛紝鍚﹀垯涓婃姤
-`claritySwitchUnsupported`銆?:::
+单层码流没有软件清晰度切换能力。要么服务端转码，要么把主/子码流发布为不同 stream
+id（`_sd` / `_hd` / `_fhd`）——插件会在其间切换（1~2s 闪断），否则上报
+`claritySwitchUnsupported`。
+:::
 
-### 闊ф€э紙娴峰銆佸垏缃戙€佸急缃戙€佸悗鍙帮級
+### 韧性（海外、切网、弱网、后台）
 
 ```dart
-final monitor = CallbackNetworkMonitor(); // 鐢?connectivity_plus 鍠傛暟鎹?final resilient = await ResilientSession.connect(
+final monitor = CallbackNetworkMonitor(); // 由 connectivity_plus 喂数据
+final resilient = await ResilientSession.connect(
   roomId: 'robot-42',
   role: RtcRole.robotOperator,
   factory: engine.join,
@@ -155,47 +194,54 @@ final monitor = CallbackNetworkMonitor(); // 鐢?connectivity_plus 鍠傛暟鎹?
   ),
 );
 
-await resilient.setBackground(true);   // 鏆傚仠鎿嶄綔骞跺叧闂棰戣建閬?await resilient.setBackground(false);  // 绛惧彂鎭㈠绁ㄦ嵁
-await resilient.confirmResume();       // 鎿嶄綔鑰呯‘璁?鈫?鏂?epoch
+await resilient.setBackground(true);   // 暂停操作并关闭视频轨道
+await resilient.setBackground(false);  // 签发恢复票据
+await resilient.confirmResume();       // 操作者确认 → 新 epoch
 ```
 
-| 鍏虫敞鐐?| 瀹炵幇 |
+| 关注点 | 实现 |
 | --- | --- |
-| 杩炴帴寤虹珛 | `LinkPolicy.connectTimeout` + 鍙楁帶閲嶈瘯 |
-| 涓户 / TURN | `RelayPlanner` 鎸夊尯鍩熸帓搴忥紝`relayModeForAttempt` 鈫?`iceTransportPolicy: relay` |
-| 缃戠粶鍒囨崲 | `NetworkPathMonitor`锛堢被鍨?+ 浠ｆ锛夆啋 `IceRestartable.restartIce` |
-| 寮辩綉 | `MediaHealthMonitor`锛氬崱椤?/ 鎷ュ / 鍐荤粨 鈫?鍏抽敭甯?鈫?闄嶆。 鈫?閲嶅缓璁㈤槄 |
-| 鍚庡彴 | `AppLifecycleGate` 鈫?`setBackground` 搴旂敤 `BackgroundPolicy` |
-| 鏂嚎閲嶈繛 | 甯︽姈鍔ㄩ€€閬匡紝鎭㈠鍚庨噸鏂拌闃呮瘡涓€璺浣忕殑娴?|
-| 杩囨湡鎿嶄綔 | `PauseResumeGate` 鐨?epoch 鎴?+ 涓ゆ鎭㈠绁ㄦ嵁 |
+| 连接建立 | `LinkPolicy.connectTimeout` + 受控重试 |
+| 中继 / TURN | `RelayPlanner` 按区域排序，`relayModeForAttempt` → `iceTransportPolicy: relay` |
+| 网络切换 | `NetworkPathMonitor`（类型 + 代次）→ `IceRestartable.restartIce` |
+| 弱网 | `MediaHealthMonitor`：卡顿 / 拥塞 / 冻结 → 关键帧 → 降档 → 重建订阅 |
+| 后台 | `AppLifecycleGate` → `setBackground` 应用 `BackgroundPolicy` |
+| 断线重连 | 带抖动退避，恢复后重新订阅每一路记住的流 |
+| 过期操作 | `PauseResumeGate` 的 epoch 戳 + 两步恢复票据 |
 
 ```dart
 final gate = PauseResumeGate();
 final queue = EpochOperationQueue<Velocity>(gate);
 
 queue.submit(const Velocity(linear: 0.6)); // epoch 1
-gate.pause(PauseReason.background);        // epoch 2锛氭鍓嶄竴鍒囪繃鏈?
-final ticket = gate.requestResume();       // 缁戝畾 epoch 3锛屼細杩囨湡
+gate.pause(PauseReason.background);        // epoch 2：此前一切过期
+
+final ticket = gate.requestResume();       // 绑定 epoch 3，会过期
 if (gate.confirmResume(ticket)) {
-  queue.take();                            // null 鈫?宸蹭涪寮冿紝涓嶆槸琛ュ彂
+  queue.take();                            // null → 已丢弃，不是补发
 }
 ```
 
-### 鏈哄櫒浜鸿繙鎺?
+### 机器人远控
+
 ```dart
 final robot = RobotController(channel: mqttChannel, gate: gate);
 await robot.connect(deviceId: 'robot-42');
 await robot.move(velocityFromJoystick(dx: 0.4, dy: -0.8));
 await robot.setPtz(pan: 30, tilt: -10);
 
-await robot.pause(PauseReason.background);        // 鍋滆溅 + 璁╂棫鎸囦护澶辨晥
-final ticket = robot.requestResume();             // 闇€鎿嶄綔鑰呯‘璁?await robot.confirmResume(ticket);
+await robot.pause(PauseReason.background);        // 停车 + 让旧指令失效
+final ticket = robot.requestResume();             // 需操作者确认
+await robot.confirmResume(ticket);
 ```
 
-杩欓噷鍙互浣跨敤浠绘剰 `TeleopChannel`鈥斺€擿MqttTeleopChannel`锛堜簯绔?broker锛夈€?`DataChannelTeleopChannel`锛圵ebRTC锛屽欢杩熸渶浣庯級锛屾垨鐢ㄦ柊澧炵殑
-`BleTeleopChannel.forDevice(device)` 寤虹珛鎸佷箙鐨?BLE GATT 閾捐矾銆傛妸涓や釜閫氶亾鍖呰繘
-`DualTeleopChannel(primary, secondary)`锛屽嵆浣跨綉缁滄柇浜嗘帶鍒朵粛鑳藉瓨娲伙紙渚嬪缃戠粶涓轰富銆?BLE 涓哄锛夈€?
-### 璁惧绠＄悊
+这里可以使用任意 `TeleopChannel`——`MqttTeleopChannel`（云端 broker）、
+`DataChannelTeleopChannel`（WebRTC，延迟最低），或用新增的
+`BleTeleopChannel.forDevice(device)` 建立持久的 BLE GATT 链路。把两个通道包进
+`DualTeleopChannel(primary, secondary)`，即使网络断了控制仍能存活（例如网络为主、
+BLE 为备）。
+
+### 设备管理
 
 ```dart
 await DeviceProvisioning().provision(
@@ -213,7 +259,7 @@ await DeviceLogCollector().flush();
 final report = await Diagnostics.run(session: session);
 ```
 
-### 鏉冮檺
+### 权限
 
 ```dart
 final results = await RtcPermissions.requestAll(<RtcPermission>{
@@ -225,37 +271,40 @@ final results = await RtcPermissions.requestAll(<RtcPermission>{
 
 ---
 
-## API 鍙傝€?
-| 鍏ュ彛 | 鐢ㄩ€?|
+## API 参考
+
+| 入口 | 用途 |
 | --- | --- |
-| `RtcEngine.create(signaling:)` | 鎸変俊浠ゅ璞″垱寤哄搴斿紩鎿?|
+| `RtcEngine.create(signaling:)` | 按信令对象创建对应引擎 |
 | `RtcSession` | `join` / `subscribe` / `unsubscribe` / `leave` / `events` / `stats` |
 | `LocalPublisher` | `startCamera` / `startMic` / `startScreenShare` / `switchCamera` / `setPublishClarity` |
-| `RemoteSubscriber` | `setClarity` / `clarity` 閫氱煡鍣?/ `videoRenderer` |
-| `VideoGridController` | 绾?Dart 鐨勫竷灞€涓庢竻鏅板害缂栨帓 |
-| `RoleTransfer` / `StreamRelay` | 韬唤浜ゆ帴涓庡獟浣撹浆鍙?|
+| `RemoteSubscriber` | `setClarity` / `clarity` 通知器 / `videoRenderer` |
+| `VideoGridController` | 纯 Dart 的布局与清晰度编排 |
+| `RoleTransfer` / `StreamRelay` | 身份交接与媒体转发 |
 | `RobotController` | `move` / `setPtz` / `stop` / `pause` / `requestResume` / `confirmResume` |
-| `BleTeleopChannel` / `BleTeleopDiscoverer` | 鍩轰簬 BLE GATT 鐨勬寔涔呮帶鍒堕€氶亾涓庤澶囨壂鎻?|
+| `BleTeleopChannel` / `BleTeleopDiscoverer` | 基于 BLE GATT 的持久控制通道与设备扫描 |
 | `ResilientSession` | `connect` / `setBackground` / `confirmResume` / `resubscribe` / `restartIce` |
-| `PauseResumeGate` / `EpochOperationQueue<T>` | epoch 绠℃帶涓?鏈€鏂拌€呰儨"缂撳啿 |
-| `RelayPlanner` / `NetworkPathMonitor` / `MediaHealthMonitor` | 涓户銆佸垏鎹笌寮辩綉妫€娴?|
-| `ControlLinkRouter` / `ControlRttTracker` / `CommandRateLimiter` | 浣庢椂寤舵帶鍒惰矾寰?|
-| `DeviceProvisioning` / `OtaUpdater` / `DeviceLogCollector` / `Diagnostics` | 鐗╄仈缃戣澶囧洓浠跺 |
-| `RtcPermissions` | 涓€娆℃€ц兘鍔涚敵璇?|
+| `PauseResumeGate` / `EpochOperationQueue<T>` | epoch 管控与"最新者胜"缓冲 |
+| `RelayPlanner` / `NetworkPathMonitor` / `MediaHealthMonitor` | 中继、切换与弱网检测 |
+| `ControlLinkRouter` / `ControlRttTracker` / `CommandRateLimiter` | 低时延控制路径 |
+| `DeviceProvisioning` / `OtaUpdater` / `DeviceLogCollector` / `Diagnostics` | 物联网设备四件套 |
+| `RtcPermissions` | 一次性能力申请 |
 
 ---
 
-## 绀轰緥
+## 示例
 
 ```bash
 cd example && flutter run
 ```
 
-鍏釜鏍囩椤碉細`link`锛堟帹娴?/ 璁㈤槄锛夈€乣robot`锛堟憞鏉?+ 鐪嬮棬鐙楋級銆乣device`锛堥厤缃?/
-鍗囩骇 / 鏃ュ織锛夈€乣ble`锛圔LE GATT 杩滄帶锛氭壂鎻?/ 杩炴帴 / 鎽囨潌锛夈€乣diag`锛堣瘖鏂姤鍛婏級涓?`resil`锛堥煣鎬у疄楠屽锛氭殏鍋滄仮澶嶇‘璁ゃ€佸垏鎹€佸急缃戙€侀€€閬匡級銆?
+六个标签页：`link`（推流 / 订阅）、`robot`（摇杆 + 看门狗）、`device`（配网 /
+升级 / 日志）、`ble`（BLE GATT 远控：扫描 / 连接 / 摇杆）、`diag`（诊断报告）与
+`resil`（韧性实验室：暂停恢复确认、切换、弱网、退避）。
+
 ---
 
-## 娴嬭瘯
+## 测试
 
 ```bash
 flutter analyze lib test example/lib
@@ -264,31 +313,44 @@ flutter test
 
 ---
 
-## 鏂囨。
+## 文档
 
-鏂囨。绔欎綅浜?[`website/`](website)锛圢extra 3 + Next.js 14锛夊苟鍙戝竷鍒?GitHub Pages锛?瀹夎銆佸揩閫熷紑濮嬨€佹帹娴併€佽闃呫€侀煣鎬с€佽摑鐗欓仴娴嬫帶鍒躲€佹満鍣ㄤ汉杩滄帶銆佽澶囩鐞嗕笌甯歌闂锛屾瘡绡囬兘鏈?`/zh/`
-涓嬬殑涓枃鐗堛€?
+文档站位于 [`website/`](website)（Nextra 3 + Next.js 14）并发布到 GitHub Pages：
+安装、快速开始、推流、订阅、韧性、蓝牙遥测控制、机器人远控、设备管理与常见问题，每篇都有 `/zh/`
+下的中文版。
+
 ```bash
 cd website && npm ci && npm run dev
 ```
 
 ---
 
-## 璐＄尞
+## 贡献
 
-娆㈣繋璐＄尞锛佹彁浜?issue 鎴?PR 鍓嶈鍏堥槄璇籟璐＄尞鎸囧崡](CONTRIBUTING.md)銆?
-- 馃悰 [鎶ュ憡缂洪櫡](https://github.com/zero-labsco/flutter_rtc_link/issues/new?template=bug_report.md)
-- 馃挕 [鍔熻兘寤鸿](https://github.com/zero-labsco/flutter_rtc_link/issues/new?template=feature_request.md)
-- 馃挰 [鍙備笌璁ㄨ](https://github.com/zero-labsco/flutter_rtc_link/discussions)
-- 馃摉 [璐＄尞鎸囧崡](CONTRIBUTING.md)
+欢迎贡献！提交 issue 或 PR 前请先阅读[贡献指南](CONTRIBUTING.md)。
+
+- 🐛 [报告缺陷](https://github.com/zero-labsco/flutter_rtc_link/issues/new?template=bug_report.md)
+- 💡 [功能建议](https://github.com/zero-labsco/flutter_rtc_link/issues/new?template=feature_request.md)
+- 💬 [参与讨论](https://github.com/zero-labsco/flutter_rtc_link/discussions)
+- 📖 [贡献指南](CONTRIBUTING.md)
 
 ---
 
-## 璁稿彲
+## 许可
 
-Copyright (c) 2026 Zero Labs Co. (AmisKwok)銆傛湰椤圭洰閲囩敤 **Mozilla Public
-License 2.0锛圡PL-2.0锛?* 璁稿彲鈥斺€旇瑙?[LICENSE](LICENSE) 鏂囦欢銆傜増鏉冨０鏄庝笌闄勫姞鏉℃
-锛堟棤鎷呬繚銆佷笉鑳屼功锛夎 [NOTICE](NOTICE)銆?
-- **鍏佽鍟嗕笟浣跨敤銆?* 鍏佽浣跨敤銆佷慨鏀逛笌闂簮鍒嗗彂銆?- **淇敼浜嗘彃浠讹紵** 浣犱慨鏀硅繃鐨勬枃浠跺繀椤讳互婧愮爜褰㈠紡鎸?MPL-2.0 鍙戝竷锛屼絾浣犺嚜宸辩殑搴旂敤
-  **鏃犻渶**寮€婧愩€?- **鍘熸牱浣跨敤锛?* 鏃犻渶鍏紑婧愮爜銆?- **涓嶈儗涔︺€?* 鏈粡浜嬪厛涔﹂潰璁稿彲锛屼笉寰椾互 "Zero Labs Co."銆?flutter_rtc_link"銆?  椤圭洰 logo / 鍚夌ゥ鐗╁舰璞″強浣滆€呭鍚嶏紙AmisKwok锛変负琛嶇敓鍝佽儗涔︺€佹帹骞挎垨鏆楃ず璧炲姪涓?  浠庡睘鍏崇郴銆?- **鏃犳媴淇濄€佹棤璐ｄ换銆?* 鐗堟潈鎸佹湁浜哄浠讳綍淇敼鐗堟垨琛嶇敓鐗堟湰涓嶆彁渚涙媴淇濄€佷笉鎵挎媴浠讳綍璐ｄ换锛?  淇敼鐗堟湰蹇呴』鏄庣‘鏍囨敞涓哄凡淇敼銆?
-鏈彃浠舵寜"鍘熸牱"鎻愪緵锛屼笉闄勫甫浠讳綍褰㈠紡鐨勬媴淇濄€傚浜庝慨鏀圭増鏈垨琛嶇敓椤圭洰鐨勫姛鑳姐€佸畨鍏ㄦ€?鍙婁娇鐢ㄥ悗鏋滐紝浣滆€呬笉鎵挎媴浠讳綍璐ｄ换銆?
+Copyright (c) 2026 Zero Labs Co. (AmisKwok)。本项目采用 **Mozilla Public
+License 2.0（MPL-2.0）** 许可——详见 [LICENSE](LICENSE) 文件。版权声明与附加条款
+（无担保、不背书）见 [NOTICE](NOTICE)。
+
+- **允许商业使用。** 允许使用、修改与闭源分发。
+- **修改了插件？** 你修改过的文件必须以源码形式按 MPL-2.0 发布，但你自己的应用
+  **无需**开源。
+- **原样使用？** 无需公开源码。
+- **不背书。** 未经事先书面许可，不得以 "Zero Labs Co."、"flutter_rtc_link"、
+  项目 logo / 吉祥物形象及作者姓名（AmisKwok）为衍生品背书、推广或暗示赞助与
+  从属关系。
+- **无担保、无责任。** 版权持有人对任何修改版或衍生版本不提供担保、不承担任何责任；
+  修改版本必须明确标注为已修改。
+
+本插件按"原样"提供，不附带任何形式的担保。对于修改版本或衍生项目的功能、安全性
+及使用后果，作者不承担任何责任。
