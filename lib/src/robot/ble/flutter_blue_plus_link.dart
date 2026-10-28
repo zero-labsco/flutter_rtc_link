@@ -5,7 +5,7 @@ import 'dart:typed_data';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 
 import '../../core/rtc_events.dart';
-import 'ble_device.dart';
+import '../../ble/ble_device.dart';
 import 'ble_link.dart';
 
 /// GATT service UUID for the teleop control channel.

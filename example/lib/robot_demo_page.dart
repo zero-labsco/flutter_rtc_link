@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_rtc_link/flutter_rtc_link.dart';
+import 'package:flutter_rtc_link/flutter_rtc_link_robot.dart';
 
 import 'widgets/instrument.dart';
 
@@ -24,7 +25,7 @@ class _RobotDemoPageState extends State<RobotDemoPage> {
   RobotController? _robot;
   RobotTelemetry _telemetry = const RobotTelemetry();
   StreamSubscription<RobotTelemetry>? _telemetrySub;
-  StreamSubscription<DeviceEvent>? _eventSub;
+  StreamSubscription<RobotEvent>? _eventSub;
   bool _watchdogTripped = false;
   double _pan = 0;
   double _tilt = 0;

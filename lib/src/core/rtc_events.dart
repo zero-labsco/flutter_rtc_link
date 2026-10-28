@@ -1,7 +1,3 @@
-import '../device/diagnostics.dart';
-import '../device/ota_updater.dart';
-import '../device/provisioning.dart';
-import '../robot/teleop_channel.dart';
 import 'rtc_role.dart';
 import 'rtc_stats.dart';
 
@@ -16,7 +12,7 @@ enum RtcConnectionState {
   /// Connected. / 已连接。
   connected,
 
-  /// Reconnecting after a transient failure. / 瞬断后重连中。
+  /// Reconnecting after a transient failure. / 瞬断后重连。
   reconnecting,
 
   /// Failed (fatal for this session). / 失败（对该会话为致命）。
@@ -102,6 +98,12 @@ class RtcException implements Exception {
 /// Consumers must handle every subtype (the compiler enforces this for
 /// `switch` expressions inside the same library).
 /// 消费者必须处理所有子类型（同一 library 内的 `switch` 表达式由编译器强制）。
+///
+/// Device-management events live in `device/device_events.dart` and robot
+/// teleoperation events in `robot/robot_events.dart`: `core` is the shared
+/// kernel and must never depend on a feature module.
+/// 设备管理事件位于 `device/device_events.dart`，机器人遥控事件位于
+/// `robot/robot_events.dart`：`core` 是共享内核，绝不能依赖功能模块。
 sealed class RtcEvent {
   const RtcEvent();
 }
@@ -176,7 +178,7 @@ final class RtcTrackSubscribed extends RtcEvent {
   final RtcTrackKind kind;
 }
 
-/// A remote track was unsubscribed. / 已取消订阅远端轨道。
+/// A remote track was unsubscribed. / 已取消订阅一路远端轨道。
 final class RtcTrackUnsubscribed extends RtcEvent {
   const RtcTrackUnsubscribed({required this.streamId, required this.kind});
 
@@ -288,167 +290,4 @@ final class RtcError extends RtcEvent {
 
   /// The typed error. / 类型化错误。
   final RtcException error;
-}
-
-/// Sealed hierarchy of device-management events (independent stream).
-/// 设备管理事件的密封层级（独立事件流）。
-sealed class DeviceEvent {
-  const DeviceEvent();
-}
-
-/// Provisioning state changed (including failure with classified reason).
-/// 配网状态变化（含带分类原因的失败）。
-final class ProvisioningStateChanged extends DeviceEvent {
-  const ProvisioningStateChanged({
-    required this.state,
-    required this.method,
-    this.reason,
-    this.deviceId,
-  });
-
-  /// Current state. / 当前状态。
-  final ProvisioningState state;
-
-  /// Method used or attempted. / 正在使用或尝试的方式。
-  final ProvisionMethod method;
-
-  /// Failure classification, when [state] is failed. / 失败分类（[state] 为 failed 时）。
-  final ProvisionFailureReason? reason;
-
-  /// Device id if known. / 设备 id（如已知）。
-  final String? deviceId;
-}
-
-/// OTA progress update (wraps the updater's [OtaProgress] snapshot).
-/// OTA 进度更新（包装升级器的 [OtaProgress] 快照）。
-final class OtaProgressChanged extends DeviceEvent {
-  const OtaProgressChanged({required this.progress});
-
-  /// Progress snapshot. / 进度快照。
-  final OtaProgress progress;
-}
-
-/// OTA completed; trust the reported version, not the device's "success".
-/// OTA 完成；以版本号上报为准，不轻信设备返回的"成功"。
-final class OtaCompleted extends DeviceEvent {
-  const OtaCompleted({required this.deviceId, required this.version});
-
-  /// Device id. / 设备 id。
-  final String deviceId;
-
-  /// New firmware version reported by the device. / 设备上报的新固件版本。
-  final String version;
-}
-
-/// OTA failed. / OTA 失败。
-final class OtaFailed extends DeviceEvent {
-  const OtaFailed({
-    required this.deviceId,
-    required this.error,
-    this.rolledBack = false,
-  });
-
-  /// Device id. / 设备 id。
-  final String deviceId;
-
-  /// Error description. / 错误描述。
-  final String error;
-
-  /// Whether the device rolled back to the old firmware. / 设备是否已回滚到旧固件。
-  final bool rolledBack;
-}
-
-/// A batch of device logs was uploaded. / 一批设备日志已上传。
-final class LogBatchUploaded extends DeviceEvent {
-  const LogBatchUploaded({required this.deviceId, required this.count});
-
-  /// Device id. / 设备 id。
-  final String deviceId;
-
-  /// Number of log entries uploaded. / 上传的日志条数。
-  final int count;
-}
-
-/// Diagnostics report is ready. / 诊断报告已生成。
-final class DiagnosticsReportReady extends DeviceEvent {
-  const DiagnosticsReportReady({required this.report});
-
-  /// The generated report. / 生成的报告。
-  final DiagnosticReport report;
-}
-
-/// Robot telemetry updated. / 机器人遥测更新。
-final class RobotTelemetryUpdated extends DeviceEvent {
-  const RobotTelemetryUpdated({required this.telemetry});
-
-  /// Latest telemetry snapshot. / 最新遥测快照。
-  final RobotTelemetry telemetry;
-}
-
-/// Robot control was suspended (background, link loss, user pause).
-/// 机器人控制被暂停（后台、断链、用户暂停）。
-///
-/// Any command produced before this event belongs to an older epoch and is
-/// dropped instead of being replayed. / 该事件之前产生的任何指令都属于更早的
-/// epoch，会被丢弃而非补发。
-final class RobotControlPaused extends DeviceEvent {
-  const RobotControlPaused({
-    required this.deviceId,
-    required this.reason,
-    required this.epoch,
-  });
-
-  /// Device id. / 设备 id。
-  final String deviceId;
-
-  /// Pause reason name (see `PauseReason`). / 暂停原因名（见 `PauseReason`）。
-  final String reason;
-
-  /// Epoch that invalidated every pending command. / 使所有待处理指令失效的 epoch。
-  final int epoch;
-}
-
-/// Robot control resumed on a fresh epoch. / 机器人控制在新的 epoch 上恢复。
-final class RobotControlResumed extends DeviceEvent {
-  const RobotControlResumed({required this.deviceId, required this.epoch});
-
-  /// Device id. / 设备 id。
-  final String deviceId;
-
-  /// Newly activated epoch. / 新激活的 epoch。
-  final int epoch;
-}
-
-/// A command was dropped because it was stamped with a stale epoch.
-/// 指令因盖有过期的 epoch 戳而被丢弃。
-final class RobotStaleCommandDropped extends DeviceEvent {
-  const RobotStaleCommandDropped({
-    required this.deviceId,
-    required this.epoch,
-    required this.currentEpoch,
-  });
-
-  /// Device id. / 设备 id。
-  final String deviceId;
-
-  /// Epoch carried by the dropped command. / 被丢弃指令所携带的 epoch。
-  final int epoch;
-
-  /// Epoch currently required. / 当前要求的 epoch。
-  final int currentEpoch;
-}
-
-/// Watchdog fired: no command within the timeout, the robot was stopped.
-/// 看门狗触发：超时未收到指令，机器人已自动停车。
-final class RobotWatchdogTriggered extends DeviceEvent {
-  const RobotWatchdogTriggered({
-    required this.deviceId,
-    required this.sinceLastCommand,
-  });
-
-  /// Device id. / 设备 id。
-  final String deviceId;
-
-  /// Time since the last accepted command. / 距最近一条被接受指令的时间。
-  final Duration sinceLastCommand;
 }

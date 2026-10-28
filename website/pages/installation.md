@@ -24,11 +24,14 @@ dependencies:
 ## Import
 
 ```dart
-import 'package:flutter_rtc_link/flutter_rtc_link.dart';
+import 'package:flutter_rtc_link/flutter_rtc_link.dart'; // media core
+import 'package:flutter_rtc_link/flutter_rtc_link_device.dart'; // provisioning, OTA, logs
+import 'package:flutter_rtc_link/flutter_rtc_link_robot.dart'; // teleoperation
 ```
 
-Everything public is re-exported from that single barrel. Never import
-`lib/src/...` directly.
+Import only the modules you actually use: the media core, device management and
+robot teleoperation are independent entry points. Everything public is
+re-exported from one of these three files; never import `lib/src/...` directly.
 
 ## Requirements
 

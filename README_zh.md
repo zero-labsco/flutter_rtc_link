@@ -18,7 +18,7 @@
 [![Style: effective dart](https://img.shields.io/badge/style-effective_dart-40c4ff.svg)](https://pub.dev/packages/effective_dart)
 [![Docs](https://img.shields.io/badge/docs-GitHub%20Pages-4cc38a.svg)](https://zero-labsco.github.io/flutter_rtc_link/)
 
-> **🔔 推荐升级：** `0.3.1` 加固了拆除、链路策略与配网语义——修复了 WebRTC、BLE、MQTT、OTA 与配网各处的泄漏、崩溃与协议缺陷（见 CHANGELOG）。插件同时提供 **基于 BLE GATT 的持久控制通道**：`BleTeleopChannel` 实现 `TeleopChannel`、可直接接入 `RobotController` / `DualTeleopChannel`、断线自动重连，并配套 `BleTeleopDiscoverer` 扫描器。建议所有用户升级到最新版本（`^0.3.1`）。
+> **🔔 推荐升级：** `0.4.0` 把包拆成三个彼此独立的公开入口——媒体核心（`flutter_rtc_link.dart`）、设备管理（`flutter_rtc_link_device.dart`）与机器人遥控（`flutter_rtc_link_robot.dart`），把 `core` 变成零依赖的共享内核，并把 NFC 与 Wi-Fi 改为由应用注入适配器，从而移除四个原生依赖（`nordic_dfu`、`ndef_record`、`nfc_manager`、`wifi_iot`）。这是一次破坏性发布，迁移方式见 CHANGELOG。建议所有用户升级到 `^0.4.0`。
 
 🌐 **[文档站](https://zero-labsco.github.io/flutter_rtc_link/)** &nbsp;·&nbsp; 📦 **[在 pub.dev 查看](https://pub.dev/packages/flutter_rtc_link)** &nbsp;·&nbsp; 🔗 **[查看 GitHub 仓库](https://github.com/zero-labsco/flutter_rtc_link)**
 
@@ -89,7 +89,7 @@
 
 ```yaml
 dependencies:
-  flutter_rtc_link: ^0.3.1
+  flutter_rtc_link: ^0.4.0
 ```
 
 ### 从 GitHub 安装
@@ -99,7 +99,7 @@ dependencies:
   flutter_rtc_link:
     git:
       url: https://github.com/zero-labsco/flutter_rtc_link.git
-      ref: release/v0.3.1   # 把 0.3.1 换成你需要的版本
+      ref: release/v0.4.0   # 把 0.4.0 换成你需要的版本
 ```
 
 ### 平台配置

@@ -1,8 +1,10 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:flutter_rtc_link/flutter_rtc_link.dart';
+import 'package:flutter_rtc_link/flutter_rtc_link_device.dart';
 
+import 'provisioning/nfc_manager_tag_backend.dart';
+import 'provisioning/wifi_iot_connector.dart';
 import 'widgets/instrument.dart';
 
 /// Device management demo: BLE scan, provisioning, OTA, logs.
@@ -26,8 +28,8 @@ class _DeviceDemoPageState extends State<DeviceDemoPage> {
   late final DeviceProvisioning _provisioning = DeviceProvisioning(
     ble: EspBleProvisioningChannel(),
     dpp: const DppProvisioningChannelImpl(),
-    nfc: const NfcProvisioningChannelImpl(),
-    softAp: const WifiIotSoftApChannel(),
+    nfc: NfcProvisioningChannelImpl(backend: const NfcManagerTagBackend()),
+    softAp: SoftApProvisioningChannelImpl(connector: const WifiIotConnector()),
   );
 
   List<ProvisionDevice> _devices = const <ProvisionDevice>[];

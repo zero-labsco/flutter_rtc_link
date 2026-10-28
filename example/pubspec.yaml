@@ -2,7 +2,7 @@ name: flutter_rtc_link_example
 description: Example app for the flutter_rtc_link plugin (RTC, robot teleoperation, device management).
 publish_to: none
 
-version: 0.3.1
+version: 0.4.0
 
 environment:
   sdk: ">=3.9.0 <4.0.0"
@@ -19,6 +19,13 @@ dependencies:
   # Used directly by the BLE teleop demo to read the adapter state / turn it on.
   # BLE 远控演示直接用它读取适配器状态 / 开启蓝牙。
   flutter_blue_plus: ^2.3.14
+  # Concrete adapters the demo injects into the plugin's provisioning channels:
+  # the plugin ships the abstractions (NfcTagBackend / WifiNetworkConnector) but
+  # no NFC or Wi-Fi stack of its own. / 演示注入到插件配网通道的具体实现：插件只
+  # 提供抽象（NfcTagBackend / WifiNetworkConnector），不自带 NFC 或 Wi-Fi 技术栈。
+  ndef_record: ^1.5.0
+  nfc_manager: ^4.2.1
+  wifi_iot: ^0.4.0
 
 dev_dependencies:
   flutter_test:

@@ -6,8 +6,8 @@ import 'package:logging/logging.dart';
 import 'package:mqtt_client/mqtt_client.dart';
 import 'package:mqtt_client/mqtt_server_client.dart';
 
-import '../core/rtc_events.dart';
-import '../robot/teleop_channel.dart' show MqttCredentials;
+import '../core/rtc_credentials.dart';
+import 'device_events.dart';
 
 /// Log level. / 日志级别。
 enum LogLevel {

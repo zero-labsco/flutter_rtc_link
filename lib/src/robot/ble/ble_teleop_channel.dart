@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 
 import '../teleop_channel.dart';
-import 'ble_device.dart';
+import '../../ble/ble_device.dart';
 import 'ble_link.dart';
 import 'flutter_blue_plus_link.dart';
 

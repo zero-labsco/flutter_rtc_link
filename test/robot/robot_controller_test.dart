@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import 'package:flutter_rtc_link/flutter_rtc_link.dart';
+import 'package:flutter_rtc_link/flutter_rtc_link_robot.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 /// Fake teleop channel for watchdog and command tests. / 用于看门狗与指令测试的假通道。
@@ -120,7 +120,7 @@ void main() {
     test('a refused command trips the watchdog immediately', () async {
       await robot.connect(deviceId: 'robot-42');
       channel.nextSendSucceeds = false;
-      final events = <DeviceEvent>[];
+      final events = <RobotEvent>[];
       robot.events.listen(events.add);
       await robot.move(const Velocity(linear: 0.5));
       // Broadcast events are delivered asynchronously. / 广播事件异步投递。

@@ -3,7 +3,7 @@ import 'dart:typed_data';
 
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 
-import '../robot/ble/ble_device.dart';
+import 'ble_device.dart';
 
 /// Clean, protocol-agnostic view of a GATT characteristic. / 与具体协议无关的
 /// GATT 特征视图（不暴露任何 `flutter_blue_plus` 类型）。

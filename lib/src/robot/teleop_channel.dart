@@ -5,6 +5,7 @@ import 'package:flutter_webrtc/flutter_webrtc.dart';
 import 'package:mqtt_client/mqtt_client.dart';
 import 'package:mqtt_client/mqtt_server_client.dart';
 
+import '../core/rtc_credentials.dart';
 import '../core/rtc_events.dart';
 
 /// Linear / angular velocity command. / 线速度 / 角速度指令。
@@ -128,15 +129,6 @@ class PtzCommand {
     'tilt': tilt,
     if (zoom != null) 'zoom': zoom,
   };
-}
-
-/// MQTT credentials (JWT is fetched dynamically — never hardcoded).
-/// MQTT 凭证（JWT 动态获取——严禁硬编码）。
-class MqttCredentials {
-  const MqttCredentials({this.username, this.password});
-
-  final String? username;
-  final String? password;
 }
 
 /// Control channel abstraction — NEVER the media channel.

@@ -1,6 +1,6 @@
 name: flutter_rtc_link
 description: "Flutter plugin for real-time audio/video (WebRTC WHIP/WHEP + LiveKit) and IoT device management: publish, subscribe, live relay, robot teleoperation, provisioning and OTA."
-version: 0.3.1
+version: 0.4.0
 topics:
   - webrtc
   - livekit
@@ -37,9 +37,6 @@ dependencies:
   livekit_client: ^2.13.1
   logging: ^1.3.0
   mqtt_client: ^10.13.0
-  ndef_record: ^1.5.0
-  nfc_manager: ^4.2.1
-  nordic_dfu: ^8.1.0
   nsd: ^5.0.1
   # Capped at 12.x on purpose: 13.0.0 bumps its Android module to compileSdk 37,
   # which exceeds the default Flutter template's 36 and would force an AGP / Gradle
@@ -49,7 +46,6 @@ dependencies:
   # 会迫使消费者升级 AGP / Gradle。在模板 compileSdk 升到 37 前，切勿对其执行
   # `dart pub upgrade --major-versions permission_handler`。（见 CHANGELOG 0.1.2 / 0.1.3。）
   permission_handler: ^12.0.0
-  wifi_iot: ^0.4.0
 
 dev_dependencies:
   flutter_test:

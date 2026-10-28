@@ -1,10 +1,10 @@
 import 'dart:async';
 
-import '../core/rtc_events.dart';
 import '../publishers/local_publisher.dart';
 import '../resilience/control_link.dart';
 import '../resilience/link_events.dart';
 import '../resilience/pause_resume_gate.dart';
+import 'robot_events.dart';
 import 'teleop_channel.dart';
 
 /// Robot teleoperation controller (control channel only).
@@ -51,8 +51,8 @@ class RobotController {
   /// Max angular speed (rad/s). / 最大角速度（rad/s）。
   final double maxAngular;
 
-  final StreamController<DeviceEvent> _eventsCtrl =
-      StreamController<DeviceEvent>.broadcast();
+  final StreamController<RobotEvent> _eventsCtrl =
+      StreamController<RobotEvent>.broadcast();
   Timer? _watchdogTimer;
   Timer? _repeatTimer;
   Velocity _currentVelocity = const Velocity();
@@ -87,8 +87,9 @@ class RobotController {
   /// Telemetry stream from the control channel. / 来自控制通道的遥测流。
   Stream<RobotTelemetry> get telemetry => _channel.telemetry;
 
-  /// Device events (watchdog trips, …). / 设备事件（看门狗触发等）。
-  Stream<DeviceEvent> get events => _eventsCtrl.stream;
+  /// Robot events (watchdog trips, pause / resume, stale drops).
+  /// 机器人事件（看门狗触发、暂停 / 恢复、过期丢弃）。
+  Stream<RobotEvent> get events => _eventsCtrl.stream;
 
   /// Connects the control channel for [deviceId]. / 为 [deviceId] 连接控制通道。
   Future<void> connect({required String deviceId}) async {
@@ -289,15 +290,15 @@ class RobotController {
     _armWatchdog();
   }
 
-  /// Emits a device event, ignoring late emissions after disposal.
-  /// 发送设备事件；已释放后迟到的发送被忽略。
+  /// Emits a robot event, ignoring late emissions after disposal.
+  /// 发送机器人事件；已释放后迟到的发送被忽略。
   ///
   /// Keep-alive commands run as unawaited futures, so one can still be in
   /// flight while [dispose] closes the sink — without this guard the late
   /// emission would throw "Bad state: Cannot add event after closing".
   /// 保活指令以不等待的 future 运行，[dispose] 关闭 sink 时可能仍有指令在飞行中
   /// ——没有这层守卫，迟到的投递会抛出 "Bad state: Cannot add event after closing"。
-  void _emit(DeviceEvent event) {
+  void _emit(RobotEvent event) {
     if (_disposed || _eventsCtrl.isClosed) return;
     _eventsCtrl.add(event);
   }

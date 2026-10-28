@@ -82,15 +82,57 @@ overseas / cross-public-network links.
     `ios/flutter_rtc_link/Sources/flutter_rtc_link/RtcLinkPlugin.swift`。原生
     改动保持最小并与 method channel 契约一致（`pkg.flutter.dev/rtc_link/`）。
 - Consumers must never import `lib/src/` directly — everything public goes
-  through the barrel. / 使用方绝不能直接导入 `lib/src/`，所有公开 API 都经 barrel。
+  through one of the three module entry points in `lib/`:
+  `flutter_rtc_link.dart` (media core), `flutter_rtc_link_device.dart`
+  (provisioning / OTA / logs / diagnostics / generic BLE) and
+  `flutter_rtc_link_robot.dart` (teleoperation + BLE control link).
+  / 使用方绝不能直接导入 `lib/src/`，所有公开 API 都经 `lib/` 下三个模块入口之一
+  导出：`flutter_rtc_link.dart`（媒体核心）、`flutter_rtc_link_device.dart`
+  （配网 / OTA / 日志 / 诊断 / 通用 BLE）与 `flutter_rtc_link_robot.dart`
+  （遥控 + BLE 控制链路）。
+
+## Module boundaries / 模块边界
+
+`lib/src/` is split into feature modules and each module ships its own entry
+point. The split only means something while the dependency directions hold, and
+`tool/check_module_boundaries.dart` enforces them in CI — run it locally too.
+/ `lib/src/` 按功能模块划分，每个模块有自己的入口。只有依赖方向成立时这种拆分才
+有意义，`tool/check_module_boundaries.dart` 在 CI 中强制校验——本地也请运行。
+
+- `core/` is the shared kernel: it must not import `device/`, `robot/`, `ble/`,
+  `platforms/`, `widgets/` or `relay/`. (`core -> engines` is allowed on
+  purpose: `RtcEngine.create` is a factory that must name its implementations.)
+  - `core/` 是共享内核：不得 import `device/`、`robot/`、`ble/`、`platforms/`、
+    `widgets/` 或 `relay/`。（`core -> engines` 刻意放行：`RtcEngine.create` 是
+    工厂，必须点名具体实现。）
+- `resilience/` works against abstractions only: no `device/`, `robot/`,
+  `ble/`, `platforms/`, `widgets/`, `engines/` or `relay/`.
+  - `resilience/` 只面向抽象工作：不 import `device/`、`robot/`、`ble/`、
+    `platforms/`、`widgets/`、`engines/` 或 `relay/`。
+- `device/`, `robot/` and `ble/` are mutually independent: none of them may
+  import another. Shared value types belong in `core/` instead.
+  - `device/`、`robot/` 与 `ble/` 彼此独立：任何一个都不得 import 另一个。共享
+    的值类型请上提到 `core/`。
+- Every entry point only re-exports its own module: `flutter_rtc_link.dart`
+  must not expose `src/device/`, `src/robot/` or `src/ble/`.
+  - 每个入口只再导出本模块：`flutter_rtc_link.dart` 不得暴露 `src/device/`、
+    `src/robot/` 或 `src/ble/`。
 
 ## Dependencies and SDK constraints / 依赖与 SDK 约束
 
 - Dart SDK: `>=3.9.0 <4.0.0`; Flutter: `>=3.35.0` (from `pubspec.yaml`).
 - Runtime deps: `flutter_webrtc`, `livekit_client`, `mqtt_client`,
-  `flutter_blue_plus`, `nfc_manager`, `ndef_record`, `nsd`, `wifi_iot`,
-  `nordic_dfu`, `flutter_ota`, `permission_handler`, `cryptography`, `crypto`,
-  `http`, `logging`.
+  `flutter_blue_plus`, `nsd`, `flutter_ota`, `permission_handler`,
+  `cryptography`, `crypto`, `http`, `logging`.
+- NFC and Wi-Fi are **not** dependencies: `NfcTagBackend` and
+  `WifiNetworkConnector` are injectable adapters the app supplies (the example
+  wires them with `nfc_manager` / `wifi_iot`). Never reintroduce `nfc_manager`,
+  `ndef_record`, `wifi_iot` or `nordic_dfu` into `pubspec.yaml` — every runtime
+  dep is compiled into every consumer's app and merges its Android permissions.
+  / NFC 与 Wi-Fi **不是**依赖：`NfcTagBackend` 与 `WifiNetworkConnector` 是由应用
+  注入的适配器（示例用 `nfc_manager` / `wifi_iot` 接线）。切勿把 `nfc_manager`、
+  `ndef_record`、`wifi_iot` 或 `nordic_dfu` 重新加回 `pubspec.yaml`——每个运行时
+  依赖都会编进使用者的应用，并合并其 Android 权限。
 - `livekit_client` must stay `>=2.4.9`: 2.4.x below that has an upstream
   null-safety bug in `local.dart` `negotiate()`.
   - `livekit_client` 必须保持在 `>=2.4.9`：更低的 2.4.x 在 `local.dart` 的
@@ -210,6 +252,7 @@ dart format .
 powershell -File tool/normalize-eol.ps1
 flutter analyze lib test example/lib   # must be: No issues found!
 flutter test                           # must be: All tests passed!
+dart run tool/check_module_boundaries.dart
 ```
 
 `dart format .` — not `dart format lib` — is the command: CI and the local

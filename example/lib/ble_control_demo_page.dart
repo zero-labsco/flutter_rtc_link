@@ -4,6 +4,8 @@ import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_rtc_link/flutter_rtc_link.dart';
+import 'package:flutter_rtc_link/flutter_rtc_link_device.dart';
+import 'package:flutter_rtc_link/flutter_rtc_link_robot.dart';
 
 import 'gatt_inspector.dart';
 import 'widgets/instrument.dart';
@@ -31,7 +33,7 @@ class _BleControlDemoPageState extends State<BleControlDemoPage> {
   RobotController? _robot;
   RobotTelemetry _telemetry = const RobotTelemetry();
   StreamSubscription<RobotTelemetry>? _telemetrySub;
-  StreamSubscription<DeviceEvent>? _eventSub;
+  StreamSubscription<RobotEvent>? _eventSub;
   bool _watchdogTripped = false;
   bool _scanning = false;
   bool _scanAll = false;

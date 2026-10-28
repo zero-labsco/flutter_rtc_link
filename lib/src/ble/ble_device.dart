@@ -1,11 +1,15 @@
-/// A discovered BLE device for the teleop control channel.
-/// 用于遥测控制通道的已发现 BLE 设备。
+/// A discovered BLE device. / 已发现的 BLE 设备。
 ///
-/// Unlike [ProvisionDevice], this keeps the public API free of
-/// `flutter_blue_plus` types; the link resolves the concrete
-/// [BluetoothDevice] from [id] (the BLE remote id) internally.
-/// 与 [ProvisionDevice] 不同，这里不向公开 API 暴露 `flutter_blue_plus`
-/// 类型；link 内部会用 [id]（BLE 远端 id）还原出具体的 `BluetoothDevice`。
+/// Kept free of `flutter_blue_plus` types so the public API never leaks the
+/// transport: a link resolves the concrete platform device from [id] (the BLE
+/// remote id) internally.
+/// 不暴露 `flutter_blue_plus` 类型，使公开 API 不泄漏传输层：link 内部会用
+/// [id]（BLE 远端 id）还原出具体的平台设备。
+///
+/// This lives in the protocol-agnostic `ble/` module because both the generic
+/// GATT client and the robot control link build on it.
+/// 放在与协议无关的 `ble/` 模块中，因为通用 GATT 客户端与机器人控制链路都以
+/// 它为基础。
 class BleDevice {
   const BleDevice({required this.id, required this.name, this.rssi = 0});
 

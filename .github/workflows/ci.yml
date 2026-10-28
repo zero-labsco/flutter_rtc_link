@@ -180,6 +180,11 @@ jobs:
       - name: Check release version consistency
         run: dart run tool/check_release.dart
 
+      # Module boundaries: core / resilience must not depend on device / robot /
+      # ble, and those three must stay mutually independent.
+      - name: Check module boundaries
+        run: dart run tool/check_module_boundaries.dart
+
       # ========== Example app / Example app ==========
 
       - name: Install example dependencies

@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 
-import '../robot/ble/ble_device.dart';
+import 'ble_device.dart';
 
 /// Generic BLE scanner returning plain [BleDevice]s for any nearby device.
 /// 通用 BLE 扫描器：返回附近任意设备的干净 [BleDevice]。

@@ -1,7 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:flutter_rtc_link/flutter_rtc_link.dart';
+import 'package:flutter_rtc_link/flutter_rtc_link_device.dart';
 
 /// Inspector dialog that connects to any BLE device via [BleGattClient] and
 /// shows its GATT services / characteristics. / 检视对话框：经 [BleGattClient]

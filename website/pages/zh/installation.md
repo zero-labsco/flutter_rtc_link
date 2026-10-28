@@ -24,10 +24,13 @@ dependencies:
 ## 导入
 
 ```dart
-import 'package:flutter_rtc_link/flutter_rtc_link.dart';
+import 'package:flutter_rtc_link/flutter_rtc_link.dart'; // 媒体核心
+import 'package:flutter_rtc_link/flutter_rtc_link_device.dart'; // 配网、OTA、日志
+import 'package:flutter_rtc_link/flutter_rtc_link_robot.dart'; // 机器人遥控
 ```
 
-所有公开 API 都由这一个 barrel 再导出，**不要**直接导入 `lib/src/...`。
+按需导入所需模块即可：媒体核心、设备管理与机器人遥控是彼此独立的入口。所有公开
+API 都由这三个文件之一再导出，**不要**直接导入 `lib/src/...`。
 
 ## 环境要求
 

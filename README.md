@@ -18,7 +18,7 @@ Real-time audio/video (WebRTC) and IoT device management in one Flutter plugin: 
 [![Style: effective dart](https://img.shields.io/badge/style-effective_dart-40c4ff.svg)](https://pub.dev/packages/effective_dart)
 [![Docs](https://img.shields.io/badge/docs-GitHub%20Pages-4cc38a.svg)](https://zero-labsco.github.io/flutter_rtc_link/)
 
-> **🔔 Upgrade recommended:** `0.3.1` hardens teardown, link policy and provisioning semantics — it fixes leaks, crashes and protocol bugs across WebRTC, BLE, MQTT, OTA and provisioning (see CHANGELOG). The plugin also provides a **persistent BLE GATT teleop control channel**: `BleTeleopChannel` implements `TeleopChannel`, drops into `RobotController` / `DualTeleopChannel`, auto-reconnects on a drop, and ships with `BleTeleopDiscoverer`. All users should upgrade to the latest version (`^0.3.1`).
+> **🔔 Upgrade recommended:** `0.4.0` splits the package into three independent public entry points — media core (`flutter_rtc_link.dart`), device management (`flutter_rtc_link_device.dart`) and robot teleoperation (`flutter_rtc_link_robot.dart`) — turns `core` into a dependency-free shared kernel, and drops four native dependencies (`nordic_dfu`, `ndef_record`, `nfc_manager`, `wifi_iot`) by moving NFC and Wi-Fi behind injectable adapters the app supplies. It is a breaking release: see the CHANGELOG for the migration. All users should upgrade to `^0.4.0`.
 
 🌐 **[Documentation](https://zero-labsco.github.io/flutter_rtc_link/)** &nbsp;·&nbsp; 📦 **[View on pub.dev](https://pub.dev/packages/flutter_rtc_link)** &nbsp;·&nbsp; 🔗 **[View on GitHub](https://github.com/zero-labsco/flutter_rtc_link)**
 
@@ -69,7 +69,7 @@ Real-time audio/video (WebRTC) and IoT device management in one Flutter plugin: 
 
 ```yaml
 dependencies:
-  flutter_rtc_link: ^0.3.1
+  flutter_rtc_link: ^0.4.0
 ```
 
 ### GitHub
@@ -79,7 +79,7 @@ dependencies:
   flutter_rtc_link:
     git:
       url: https://github.com/zero-labsco/flutter_rtc_link.git
-      ref: release/v0.3.1   # replace with the version you need
+      ref: release/v0.4.0   # replace with the version you need
 ```
 
 ### Platform Setup

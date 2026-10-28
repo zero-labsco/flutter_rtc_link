@@ -1,5 +1,29 @@
 # Changelog
 
+## 0.4.0
+
+### Added / 新增
+
+- Added separate public entry points `flutter_rtc_link_device.dart` (provisioning, OTA, logs, diagnostics, generic BLE) and `flutter_rtc_link_robot.dart` (teleoperation, BLE control link), so an app that only needs media no longer compiles those modules, and added `tool/check_module_boundaries.dart` to enforce the module directions in CI.
+  - 新增独立公开入口 `flutter_rtc_link_device.dart`（配网、OTA、日志、诊断、通用 BLE）与 `flutter_rtc_link_robot.dart`（遥控、BLE 控制链路），只需要媒体能力的应用不再编译这些模块，并新增 `tool/check_module_boundaries.dart` 在 CI 中强制校验模块依赖方向。
+- Added `RobotEvent`, a sealed hierarchy in `robot/robot_events.dart` that takes over the telemetry, pause / resume, stale-drop and watchdog events previously hanging off `DeviceEvent`.
+  - 新增 `RobotEvent`（位于 `robot/robot_events.dart` 的密封层级），接管此前挂在 `DeviceEvent` 下的遥测、暂停 / 恢复、过期丢弃与看门狗事件。
+- Added `NfcTagBackend` and `WifiNetworkConnector`: injectable adapters so the NFC and Wi-Fi stacks are supplied by the app instead of being forced on every consumer of the plugin.
+  - 新增 `NfcTagBackend` 与 `WifiNetworkConnector` 可注入适配器，使 NFC 与 Wi-Fi 技术栈由应用提供，而不强加给插件的每个使用者。
+
+### Changed / 优化
+
+- Changed the public barrel `flutter_rtc_link.dart` to export the media core only: device and robot symbols must now be imported from `flutter_rtc_link_device.dart` / `flutter_rtc_link_robot.dart` (breaking, no compatibility shim).
+  - 公开 barrel `flutter_rtc_link.dart` 现只导出媒体核心：设备与机器人符号需改从 `flutter_rtc_link_device.dart` / `flutter_rtc_link_robot.dart` 导入（破坏性变更，无兼容垫片）。
+- Changed `core/` into a dependency-free shared kernel: `DeviceEvent` moved to `device/device_events.dart`, `MqttCredentials` to `core/rtc_credentials.dart` and `BleDevice` to `ble/ble_device.dart`, so `core` and `resilience` no longer depend on `device`, `robot`, `ble` or `platforms`.
+  - 将 `core/` 改为零依赖共享内核：`DeviceEvent` 迁至 `device/device_events.dart`、`MqttCredentials` 迁至 `core/rtc_credentials.dart`、`BleDevice` 迁至 `ble/ble_device.dart`，`core` 与 `resilience` 自此不再依赖 `device`、`robot`、`ble` 或 `platforms`。
+- Changed `RobotController.events` to emit `Stream<RobotEvent>` instead of `Stream<DeviceEvent>`; `DeviceEvent` keeps only provisioning, OTA, log and diagnostics events.
+  - `RobotController.events` 改为发出 `Stream<RobotEvent>` 而非 `Stream<DeviceEvent>`；`DeviceEvent` 只保留配网、OTA、日志与诊断事件。
+- Changed `NfcProvisioningChannelImpl` to require an `NfcTagBackend`, and renamed `WifiIotSoftApChannel` to `SoftApProvisioningChannelImpl` with a required `WifiNetworkConnector`; the demo app wires both with `nfc_manager` and `wifi_iot`.
+  - `NfcProvisioningChannelImpl` 现在要求传入 `NfcTagBackend`；`WifiIotSoftApChannel` 更名为 `SoftApProvisioningChannelImpl` 并要求传入 `WifiNetworkConnector`；示例应用用 `nfc_manager` 与 `wifi_iot` 完成接线。
+- Dropped the unused `nordic_dfu` dependency and removed `ndef_record`, `nfc_manager` and `wifi_iot` from the published package, cutting four native plugin integrations (and their merged Android permissions) from every install.
+  - 移除未使用的 `nordic_dfu` 依赖，并从发布包中删除 `ndef_record`、`nfc_manager` 与 `wifi_iot`，每次安装少引入四个原生插件（及其合并进来的 Android 权限）。
+
 ## 0.3.1
 
 ### Added / 新增

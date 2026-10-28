@@ -1,4 +1,5 @@
 import 'package:flutter_rtc_link/flutter_rtc_link.dart';
+import 'package:flutter_rtc_link/flutter_rtc_link_robot.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../robot/robot_controller_test.dart' show FakeTeleopChannel;
@@ -16,7 +17,7 @@ void main() {
       addTearDown(robot.dispose);
       await robot.connect(deviceId: 'robot-1');
 
-      final events = <DeviceEvent>[];
+      final events = <RobotEvent>[];
       final sub = robot.events.listen(events.add);
       await robot.move(const Velocity(linear: 0.5));
       expect(channel.velocities.length, 1);

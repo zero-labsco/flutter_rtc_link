@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import 'package:flutter_rtc_link/flutter_rtc_link.dart';
+import 'package:flutter_rtc_link/flutter_rtc_link_robot.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 /// In-memory [BleLink] so the channel logic is testable without a real device.

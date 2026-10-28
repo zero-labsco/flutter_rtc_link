@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:logging/logging.dart';
 
-import '../core/rtc_events.dart';
+import 'device_events.dart';
 
 /// Provisioning method (unified abstraction, auto-degrades).
 /// 配网方式（统一抽象，自动降级）。

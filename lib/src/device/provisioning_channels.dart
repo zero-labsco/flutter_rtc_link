@@ -4,11 +4,6 @@ import 'dart:typed_data';
 
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'package:http/http.dart' as http;
-import 'package:ndef_record/ndef_record.dart';
-import 'package:nfc_manager/nfc_manager.dart';
-import 'package:nfc_manager/nfc_manager_android.dart' show NdefAndroid;
-import 'package:nfc_manager/nfc_manager_ios.dart' show NdefIos;
-import 'package:wifi_iot/wifi_iot.dart';
 
 import '../platforms/rtc_link_platform.dart';
 import 'protocomm.dart';
@@ -238,158 +233,104 @@ class DppProvisioningChannelImpl implements DppProvisioningChannel {
       RtcLinkPlatform.instance.startDppConfigurator(qrContent);
 }
 
-/// NFC provisioning channel (NDEF credential tags). / NFC 配网通道（NDEF 凭据标签）。
+/// Reads and writes the credential payload on an NFC tag.
+/// 读写 NFC 标签上的凭据载荷。
+///
+/// The plugin deliberately ships no NFC stack: hardware access is an app
+/// decision (and an app-store privacy declaration), so the app injects an
+/// implementation — for example one built on `nfc_manager` — and the plugin
+/// only handles the credential payload on top of it.
+/// 插件刻意不自带 NFC 技术栈：硬件访问应由应用决定（且涉及应用商店隐私声明），
+/// 因此由应用注入一个实现（例如基于 `nfc_manager` 的实现），插件只在其之上处理
+/// 凭据载荷。
+abstract class NfcTagBackend {
+  /// Reads the text stored on the next discovered tag; null on timeout or when
+  /// no readable text is found. / 读取下一个被发现的标签上存储的文本；超时或未
+  /// 找到可读文本时返回 null。
+  Future<String?> readText({Duration timeout = const Duration(seconds: 30)});
+
+  /// Writes [text] to the next discovered tag. / 将 [text] 写入下一个被发现的标签。
+  Future<bool> writeText(
+    String text, {
+    Duration timeout = const Duration(seconds: 30),
+  });
+}
+
+/// NFC provisioning channel (credential tags). / NFC 配网通道（凭据标签）。
+///
+/// Knows nothing about the NFC stack: it encodes [WifiCredential] as JSON and
+/// delegates every tag operation to [backend].
+/// 不了解 NFC 技术栈：它把 [WifiCredential] 编码为 JSON，所有标签操作都交给
+/// [backend]。
 class NfcProvisioningChannelImpl implements NfcProvisioningChannel {
-  const NfcProvisioningChannelImpl();
+  const NfcProvisioningChannelImpl({required this.backend});
+
+  /// Injected NFC tag I/O. / 注入的 NFC 标签读写实现。
+  final NfcTagBackend backend;
 
   @override
   Future<WifiCredential?> readCredentialTag({
     Duration timeout = const Duration(seconds: 30),
   }) async {
-    final completer = Completer<WifiCredential?>();
-    Timer? timeoutTimer;
-    await NfcManager.instance.startSession(
-      pollingOptions: const <NfcPollingOption>{
-        NfcPollingOption.iso14443,
-        NfcPollingOption.iso15693,
-      },
-      onDiscovered: (tag) async {
-        final message = await _readNdefMessage(tag);
-        final credential = message == null ? null : _parseCredential(message);
-        if (!completer.isCompleted) completer.complete(credential);
-        await NfcManager.instance.stopSession();
-      },
-    );
-    timeoutTimer = Timer(timeout, () {
-      if (!completer.isCompleted) completer.complete(null);
-      NfcManager.instance.stopSession();
-    });
-    final result = await completer.future;
-    timeoutTimer.cancel();
-    return result;
+    final text = await backend.readText(timeout: timeout);
+    if (text == null) return null;
+    try {
+      final decoded = jsonDecode(text);
+      if (decoded is! Map<String, dynamic>) return null;
+      return WifiCredential(
+        ssid: decoded['ssid'] as String? ?? '',
+        password: decoded['password'] as String? ?? '',
+        bssid: decoded['bssid'] as String?,
+        security: WifiSecurity.values.firstWhere(
+          (s) => s.name == decoded['security'],
+          orElse: () => WifiSecurity.wpa2,
+        ),
+      );
+    } catch (_) {
+      return null;
+    }
   }
 
   @override
   Future<bool> writeCredentialTag(
     WifiCredential wifi, {
     Duration timeout = const Duration(seconds: 30),
-  }) async {
-    final completer = Completer<bool>();
-    Timer? timeoutTimer;
-    await NfcManager.instance.startSession(
-      pollingOptions: const <NfcPollingOption>{
-        NfcPollingOption.iso14443,
-        NfcPollingOption.iso15693,
-      },
-      onDiscovered: (tag) async {
-        final ok = await _writeNdefMessage(tag, _credentialMessage(wifi));
-        if (!completer.isCompleted) completer.complete(ok);
-        await NfcManager.instance.stopSession();
-      },
-    );
-    timeoutTimer = Timer(timeout, () {
-      if (!completer.isCompleted) completer.complete(false);
-      NfcManager.instance.stopSession();
-    });
-    final result = await completer.future;
-    timeoutTimer.cancel();
-    return result;
+  }) {
+    return backend.writeText(jsonEncode(wifi.toJson()), timeout: timeout);
   }
+}
 
-  static Future<NdefMessage?> _readNdefMessage(NfcTag tag) async {
-    final android = NdefAndroid.from(tag);
-    if (android != null) return android.getNdefMessage();
-    final ios = NdefIos.from(tag);
-    if (ios != null) return ios.readNdef();
-    return null;
-  }
-
-  static Future<bool> _writeNdefMessage(NfcTag tag, NdefMessage message) async {
-    try {
-      final android = NdefAndroid.from(tag);
-      if (android != null) {
-        await android.writeNdefMessage(message);
-        return true;
-      }
-      final ios = NdefIos.from(tag);
-      if (ios != null) {
-        await ios.writeNdef(message);
-        return true;
-      }
-    } catch (_) {
-      return false;
-    }
-    return false;
-  }
-
-  static NdefMessage _credentialMessage(WifiCredential wifi) {
-    return NdefMessage(
-      records: <NdefRecord>[
-        NdefRecord(
-          typeNameFormat: TypeNameFormat.wellKnown,
-          type: Uint8List.fromList(utf8.encode('T')),
-          identifier: Uint8List(0),
-          payload: _textPayload(jsonEncode(wifi.toJson())),
-        ),
-      ],
-    );
-  }
-
-  static WifiCredential? _parseCredential(NdefMessage message) {
-    for (final record in message.records) {
-      if (record.typeNameFormat != TypeNameFormat.wellKnown) continue;
-      final type = utf8.decode(record.type);
-      if (type != 'T') continue;
-      final text = _decodeTextPayload(record.payload);
-      try {
-        final decoded = jsonDecode(text);
-        if (decoded is! Map<String, dynamic>) continue;
-        return WifiCredential(
-          ssid: decoded['ssid'] as String? ?? '',
-          password: decoded['password'] as String? ?? '',
-          bssid: decoded['bssid'] as String?,
-          security: WifiSecurity.values.firstWhere(
-            (s) => s.name == decoded['security'],
-            orElse: () => WifiSecurity.wpa2,
-          ),
-        );
-      } catch (_) {
-        continue;
-      }
-    }
-    return null;
-  }
-
-  /// Builds an NDEF text-record payload (status byte + language + text).
-  /// 构造 NDEF 文本记录载荷（状态字节 + 语言 + 文本）。
-  static Uint8List _textPayload(String text) {
-    final language = utf8.encode('en');
-    final body = BytesBuilder()
-      ..addByte(0x02) // UTF-8, language length 3 bits
-      ..add(language)
-      ..add(utf8.encode(text));
-    return body.toBytes();
-  }
-
-  static String _decodeTextPayload(Uint8List payload) {
-    if (payload.isEmpty) return '';
-    final status = payload[0];
-    final languageLength = status & 0x3F;
-    final isUtf8 = (status & 0x80) == 0;
-    final textBytes = payload.sublist(1 + languageLength);
-    return isUtf8 ? utf8.decode(textBytes) : latin1.decode(textBytes);
-  }
+/// Joins the phone to a device's open SoftAP network. / 让手机连上设备的开放 SoftAP 网络。
+///
+/// Injected for the same reason as [NfcTagBackend]: joining Wi-Fi networks is a
+/// platform capability the app owns, not something a media plugin should force
+/// on every consumer.
+/// 注入的原因同 [NfcTagBackend]：连接 Wi-Fi 是应用拥有的平台能力，不该由媒体
+/// 插件强加给每一个使用者。
+abstract class WifiNetworkConnector {
+  /// Joins the open (no-password) network [ssid]. / 加入开放的（无密码）网络 [ssid]。
+  Future<bool> connectToOpenNetwork(
+    String ssid, {
+    Duration timeout = const Duration(seconds: 15),
+  });
 }
 
 /// SoftAP provisioning channel (Android full support; iOS can only guide the
 /// user to switch Wi-Fi manually). / SoftAP 配网通道（Android 完整支持；
 /// iOS 只能引导用户手动切换 Wi-Fi）。
-class WifiIotSoftApChannel implements SoftApProvisioningChannel {
-  const WifiIotSoftApChannel({
+///
+/// Joins the device AP through [connector], then POSTs the credentials.
+/// 先经 [connector] 连上设备 AP，再 POST 凭据。
+class SoftApProvisioningChannelImpl implements SoftApProvisioningChannel {
+  const SoftApProvisioningChannelImpl({
+    required this.connector,
     this.deviceHost = '192.168.4.1',
     this.path = '/provision',
     this.timeout = const Duration(seconds: 15),
   });
+
+  /// Injected Wi-Fi joiner. / 注入的 Wi-Fi 连接器。
+  final WifiNetworkConnector connector;
 
   /// Device SoftAP HTTP endpoint host. / 设备 SoftAP HTTP 端点主机。
   final String deviceHost;
@@ -405,12 +346,9 @@ class WifiIotSoftApChannel implements SoftApProvisioningChannel {
     required String deviceApSsid,
     required WifiCredential wifi,
   }) async {
-    final connected = await WiFiForIoTPlugin.connect(
+    final connected = await connector.connectToOpenNetwork(
       deviceApSsid,
-      security: NetworkSecurity.NONE,
-      joinOnce: true,
-      withInternet: false,
-      timeoutInSeconds: timeout.inSeconds,
+      timeout: timeout,
     );
     if (!connected) return false;
     final response = await http

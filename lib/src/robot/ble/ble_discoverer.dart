@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 
-import 'ble_device.dart';
+import '../../ble/ble_device.dart';
 import 'flutter_blue_plus_link.dart';
 
 /// Scans for robots advertising the teleop GATT service.
