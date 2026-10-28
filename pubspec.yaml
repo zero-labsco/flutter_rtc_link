@@ -1,19 +1,16 @@
 name: flutter_rtc_link
 description: "Flutter plugin for real-time audio/video (WebRTC WHIP/WHEP + LiveKit) and IoT device management: publish, subscribe, live relay, robot teleoperation, provisioning and OTA."
 version: 0.4.0
+# pub.dev allows at most 5 topics: one per capability pillar — WebRTC core,
+# the LiveKit engine, IoT, provisioning and robot teleoperation.
+# pub.dev 最多允许 5 个 topic：每个能力支柱各一个——WebRTC 核心、LiveKit 引擎、
+# 物联网、配网与机器人遥控。
 topics:
   - webrtc
   - livekit
-  - rtc
-  - real-time
-  - streaming
   - iot
   - provisioning
-  - ota
   - teleoperation
-  - ble
-  - mqtt
-  - esp32
 homepage: https://github.com/zero-labsco/flutter_rtc_link
 repository: https://github.com/zero-labsco/flutter_rtc_link
 documentation: https://zero-labsco.github.io/flutter_rtc_link/
