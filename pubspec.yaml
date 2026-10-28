@@ -13,7 +13,7 @@ topics:
   - teleoperation
   - ble
   - mqtt
-  - nfc
+  - esp32
 homepage: https://github.com/zero-labsco/flutter_rtc_link
 repository: https://github.com/zero-labsco/flutter_rtc_link
 documentation: https://zero-labsco.github.io/flutter_rtc_link/
