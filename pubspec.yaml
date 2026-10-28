@@ -3,10 +3,17 @@ description: "Flutter plugin for real-time audio/video (WebRTC WHIP/WHEP + LiveK
 version: 0.3.1
 topics:
   - webrtc
+  - livekit
   - rtc
+  - real-time
   - streaming
   - iot
-  - robot
+  - provisioning
+  - ota
+  - teleoperation
+  - ble
+  - mqtt
+  - nfc
 homepage: https://github.com/zero-labsco/flutter_rtc_link
 repository: https://github.com/zero-labsco/flutter_rtc_link
 documentation: https://zero-labsco.github.io/flutter_rtc_link/
